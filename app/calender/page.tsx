@@ -1,1 +1,3 @@
-
+import Link from "next/link";
+import { CalendarDays, ChevronLeft } from "lucide-react";
+export default function Calendar(){return <main className="page-shell"><aside className="mini-sidebar"><Link href="/" className="mini-logo">B</Link><Link href="/calendar" className="mini-active"><CalendarDays size={19}/></Link></aside><section className="page-main"><div className="page-header"><div><span className="eyebrow">CONTENT CALENDAR</span><h1>تقویم محتوا</h1><p>تقویم فقط برنامه‌ریزی است؛ تولید بدون تأیید تو شروع نمی‌شود.</p></div></div><div className="calendar-card"><div className="calendar-week">{["شنبه","یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه"].map((d,i)=><div key={d} className="day"><small>{d}</small><b>{i+10}</b>{i===1&&<span>کاروسل • دکتر نادری</span>}{i===3&&<span>استوری • سوان هانی</span>}</div>)}</div></div></section></main>}
