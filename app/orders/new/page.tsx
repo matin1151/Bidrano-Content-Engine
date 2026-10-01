@@ -10,16 +10,19 @@ import {
   WandSparkles,
 } from "lucide-react";
 
+type ContentType = "carousel" | "stories" | "reels";
+type TopicMode = "topic" | "suggest";
+
 export default function NewOrder() {
-  const [type, setType] = useState("carousel");
-  const [mode, setMode] = useState("topic");
+  const [type, setType] = useState<ContentType>("carousel");
+  const [mode, setMode] = useState<TopicMode>("topic");
 
   return (
     <main className="order-page">
       <div className="order-top">
         <Link href="/" className="back-link">
           <ChevronRight size={15} />
-          داشبورد
+          Dashboard
         </Link>
 
         <span className="eyebrow">NEW ORDER</span>
@@ -28,166 +31,158 @@ export default function NewOrder() {
       <div className="order-layout">
         <section>
           <div className="order-heading">
-            <h1>سفارش محتوای جدید</h1>
+            <h1>New Content Order</h1>
             <p>
-              اطلاعات سفارش را مشخص کن. تولید فقط بعد از تأیید تو شروع می‌شود.
+              Define the content request. Production starts only after you
+              explicitly start it.
             </p>
           </div>
 
           <div className="form-card">
-            {/* Step 01 — Customer */}
-            <Step n="01" title="مشتری">
+            <Step n="01" title="Customer">
               <select defaultValue="naderi">
-                <option value="naderi">
-                  دکتر نادری — دندانپزشکی
-                </option>
-                <option value="aria">
-                  استودیو آریا — عکاسی
-                </option>
-                <option value="savan">
-                  سوان هانی — عسل
-                </option>
+                <option value="naderi">Dr. Naderi — Dentistry</option>
+                <option value="aria">Aria Studio — Photography</option>
+                <option value="savan">Savan Honey — Honey Brand</option>
               </select>
             </Step>
 
-            {/* Step 02 — Content Type */}
-            <Step n="02" title="نوع محتوا">
+            <Step n="02" title="Content Type">
               <div className="choice-grid">
-                {[
-                  ["carousel", "پست کاروسل"],
-                  ["stories", "رشته استوری"],
-                  ["reels", "پک تولید ریلز"],
-                ].map(([value, title]) => (
-                  <button
-                    type="button"
-                    className={`choice ${
-                      type === value ? "selected" : ""
-                    }`}
-                    onClick={() => setType(value)}
-                    key={value}
-                  >
-                    {type === value && (
-                      <span className="check">
-                        <Check size={13} />
-                      </span>
-                    )}
+                <button
+                  type="button"
+                  className={`choice ${type === "carousel" ? "selected" : ""}`}
+                  onClick={() => setType("carousel")}
+                >
+                  {type === "carousel" && (
+                    <span className="check">
+                      <Check size={13} />
+                    </span>
+                  )}
+                  <strong>Carousel Post</strong>
+                </button>
 
-                    <strong>{title}</strong>
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  className={`choice ${type === "stories" ? "selected" : ""}`}
+                  onClick={() => setType("stories")}
+                >
+                  {type === "stories" && (
+                    <span className="check">
+                      <Check size={13} />
+                    </span>
+                  )}
+                  <strong>Story Series</strong>
+                </button>
+
+                <button
+                  type="button"
+                  className={`choice ${type === "reels" ? "selected" : ""}`}
+                  onClick={() => setType("reels")}
+                >
+                  {type === "reels" && (
+                    <span className="check">
+                      <Check size={13} />
+                    </span>
+                  )}
+                  <strong>Reels Production Pack</strong>
+                </button>
               </div>
             </Step>
 
-            {/* Step 03 — Topic Mode */}
-            <Step n="03" title="روش انتخاب موضوع">
+            <Step n="03" title="Topic Selection">
               <div className="mode-grid">
                 <button
                   type="button"
-                  className={`mode ${
-                    mode === "topic" ? "selected" : ""
-                  }`}
+                  className={`mode ${mode === "topic" ? "selected" : ""}`}
                   onClick={() => setMode("topic")}
                 >
                   <WandSparkles size={18} />
-
                   <div>
-                    <strong>موضوع را می‌دهم</strong>
-                    <small>
-                      موضوع یا ایده مشخص دارم.
-                    </small>
+                    <strong>I Have a Topic</strong>
+                    <small>I already have a specific topic or idea.</small>
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  className={`mode ${
-                    mode === "suggest" ? "selected" : ""
-                  }`}
+                  className={`mode ${mode === "suggest" ? "selected" : ""}`}
                   onClick={() => setMode("suggest")}
                 >
                   <Sparkles size={18} />
-
                   <div>
-                    <strong>Bidrano پیشنهاد بدهد</strong>
+                    <strong>Suggest a Topic</strong>
                     <small>
-                      بر اساس Brand Memory و هدف برند.
+                      Based on Brand Profile, Memory and brand goals.
                     </small>
                   </div>
                 </button>
               </div>
             </Step>
 
-            {/* Step 04 — Topic */}
             {mode === "topic" && (
-              <Step n="04" title="موضوع">
-                <textarea
-                  placeholder="مثلاً: ۵ اشتباه رایج در مسواک زدن که به دندان آسیب می‌زند"
-                />
+              <Step n="04" title="Topic">
+                <textarea placeholder="Example: 5 common brushing mistakes that can damage your teeth" />
               </Step>
             )}
 
-            {/* Additional Instructions */}
             <Step
               n={mode === "topic" ? "05" : "04"}
-              title="توضیحات تکمیلی"
+              title="Additional Instructions"
             >
-              <textarea
-                placeholder="نکات، مناسبت، محصول، محدودیت یا دستور خاص مشتری..."
-              />
+              <textarea placeholder="Campaign notes, occasion, product, restrictions or specific customer instructions..." />
             </Step>
 
-            {/* Production Rule */}
             <div className="production-note">
               <Sparkles size={18} />
-
               <span>
-                <strong>شروع تولید خودکار نیست.</strong>
-
+                <strong>Production is manual.</strong>
                 <small>
-                  پس از ساخت سفارش، آن را بررسی کن و دکمه «شروع تولید» را بزن.
+                  Review the order first, then click Start Production.
                 </small>
               </span>
             </div>
 
-            <button type="button" className="start-production">
-              <span>ایجاد سفارش و آماده‌سازی برای تولید</span>
+            <Link
+              href="/production/in-progress"
+              className="start-production"
+            >
+              <span>Start Production</span>
               <ArrowLeft size={17} />
-            </button>
+            </Link>
           </div>
         </section>
 
-        {/* Order Context */}
         <aside className="order-summary">
           <div className="summary-card">
-            <span className="section-kicker">
-              ORDER CONTEXT
-            </span>
-
-            <h3>دکتر نادری</h3>
-
+            <span className="section-kicker">ORDER CONTEXT</span>
+            <h3>Dr. Naderi</h3>
             <p>
-              اطلاعات Brand Profile و Memory این مشتری هنگام تولید به
-              Pipeline منتقل می‌شود.
+              Brand Profile and Content Memory will be passed into the
+              production pipeline.
             </p>
 
             <div className="summary-line">
-              <span>نوع</span>
-
+              <span>Type</span>
               <b>
                 {type === "carousel"
-                  ? "کاروسل"
+                  ? "Carousel"
                   : type === "stories"
-                  ? "استوری"
-                  : "ریلز پک"}
+                    ? "Stories"
+                    : "Reels Pack"}
               </b>
             </div>
 
             <div className="summary-line">
-              <span>وضعیت</span>
-
-              <b className="status review">
-                آماده شروع
+              <span>Topic Mode</span>
+              <b>
+                {mode === "topic" ? "User Provided" : "Bidrano Suggestion"}
               </b>
+            </div>
+
+            <div className="summary-line">
+              <span>Status</span>
+              <b className="status review">Ready to Start</b>
             </div>
           </div>
         </aside>
@@ -211,7 +206,6 @@ function Step({
         <span>{n}</span>
         <h2>{title}</h2>
       </div>
-
       {children}
     </div>
   );

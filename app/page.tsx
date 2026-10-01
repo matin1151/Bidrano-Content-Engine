@@ -15,17 +15,50 @@ import {
 } from "lucide-react";
 
 const nav = [
-  { label: "داشبورد", href: "/", icon: LayoutDashboard },
-  { label: "مشتری‌ها", href: "/customers", icon: Users },
-  { label: "تولید محتوا", href: "/production", icon: WandSparkles },
-  { label: "تقویم محتوا", href: "/calendar", icon: CalendarDays },
-  { label: "تاریخچه محتوا", href: "/memory", icon: FolderKanban },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Customers", href: "/customers", icon: Users },
+  { label: "Production", href: "/production", icon: WandSparkles },
+  { label: "Content Calendar", href: "/calendar", icon: CalendarDays },
+  { label: "Content Memory", href: "/memory", icon: FolderKanban },
 ];
 
 const contentTypes = [
-  { title: "پست کاروسل", sub: "طراحی اسلاید + کپشن", href: "/orders/new?type=carousel", icon: Images },
-  { title: "رشته استوری", sub: "استوری‌های آماده انتشار", href: "/orders/new?type=stories", icon: FileText },
-  { title: "پک تولید ریلز", sub: "سناریو + استوری‌بورد", href: "/orders/new?type=reels", icon: PlaySquare },
+  {
+    title: "Carousel Post",
+    sub: "Slide design + caption",
+    href: "/orders/new?type=carousel",
+    icon: Images,
+  },
+  {
+    title: "Story Series",
+    sub: "Ready-to-publish stories",
+    href: "/orders/new?type=stories",
+    icon: FileText,
+  },
+  {
+    title: "Reels Production Pack",
+    sub: "Script + storyboard",
+    href: "/orders/new?type=reels",
+    icon: PlaySquare,
+  },
+];
+
+const productionStatuses = [
+  {
+    number: "08",
+    label: "In Production",
+    href: "/production/in-progress",
+  },
+  {
+    number: "05",
+    label: "Waiting for Review",
+    href: "/production/needs-review",
+  },
+  {
+    number: "21",
+    label: "Approved",
+    href: "/production/approved",
+  },
 ];
 
 export default function Home() {
@@ -34,6 +67,7 @@ export default function Home() {
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-mark">B</div>
+
           <div>
             <strong>Bidrano</strong>
             <small>CONTENT STUDIO</small>
@@ -41,9 +75,14 @@ export default function Home() {
         </div>
 
         <nav className="sidebar-nav">
-          <span className="nav-label">استودیو</span>
+          <span className="nav-label">STUDIO</span>
+
           {nav.map(({ label, href, icon: Icon }, index) => (
-            <Link key={label} href={href} className={`nav-item ${index === 0 ? "active" : ""}`}>
+            <Link
+              key={label}
+              href={href}
+              className={`nav-item ${index === 0 ? "active" : ""}`}
+            >
               <Icon size={18} />
               <span>{label}</span>
             </Link>
@@ -53,16 +92,19 @@ export default function Home() {
         <div className="sidebar-bottom">
           <div className="smart-tip">
             <Sparkles size={17} />
+
             <div>
-              <strong>پیشنهاد هوشمند</strong>
-              <small>۳ ایده برای امروز</small>
+              <strong>Smart Suggestion</strong>
+              <small>3 ideas for today</small>
             </div>
           </div>
+
           <div className="user-card">
-            <div className="avatar">م</div>
+            <div className="avatar">M</div>
+
             <div>
-              <strong>متین</strong>
-              <small>مدیر استودیو</small>
+              <strong>Matin</strong>
+              <small>Studio Manager</small>
             </div>
           </div>
         </div>
@@ -72,99 +114,280 @@ export default function Home() {
         <header className="topbar">
           <div>
             <span className="eyebrow">BIDRANO STUDIO</span>
-            <h1>سلام متین 👋</h1>
+            <h1>Hello Matin 👋</h1>
           </div>
+
           <div className="top-actions">
-            <button className="icon-button" aria-label="اعلان‌ها"><Bell size={18} /></button>
-            <Link href="/orders/new" className="button primary">
-              <CirclePlus size={18} /> سفارش جدید
+            <button
+              className="icon-button"
+              aria-label="Notifications"
+            >
+              <Bell size={18} />
+            </button>
+
+            <Link
+              href="/orders/new"
+              className="button primary"
+            >
+              <CirclePlus size={18} />
+              New Content
             </Link>
           </div>
         </header>
 
+        {/* HERO */}
+
         <section className="hero">
           <div className="hero-copy">
-            <span className="kicker"><Sparkles size={15} /> دستیار تولید محتوا</span>
-            <h2>امروز برای کدام برند محتوا بسازیم؟</h2>
+            <span className="kicker">
+              <Sparkles size={15} />
+              Content Assistant
+            </span>
+
+            <h2>What should we create today?</h2>
+
             <p>
-              مشتری را انتخاب کن یا موضوعت را بنویس؛ Bidrano از Brand Memory،
-              محتوای قبلی و اطلاعات روز برای ساخت خروجی آماده انتشار استفاده می‌کند.
+              Choose a customer and a direction. Bidrano uses Brand
+              Profile, Content Memory and current research to prepare a
+              publish-ready content package.
             </p>
+
             <div className="hero-actions">
-              <Link href="/orders/new" className="button primary large">
-                <WandSparkles size={17} /> پیشنهاد محتوای امروز
+              <Link
+                href="/orders/new?mode=suggestion"
+                className="button primary large"
+              >
+                <Sparkles size={17} />
+                Today&apos;s Suggestion
               </Link>
-              <Link href="/orders/new" className="button secondary large">شروع از یک موضوع</Link>
+
+              <Link
+                href="/orders/new?mode=topic"
+                className="button secondary large"
+              >
+                <WandSparkles size={17} />
+                Start from a Topic
+              </Link>
             </div>
           </div>
+
           <div className="orbit" aria-hidden="true">
-            <div className="orbit-core"><Sparkles size={27} /></div>
-            <span className="orbit-chip one">Brand Memory</span>
-            <span className="orbit-chip two">Research</span>
-            <span className="orbit-chip three">QA</span>
+            <div className="orbit-image">
+              <img
+                src="/content-assistant-700.webp"
+                alt=""
+              />
+            </div>
+
+            <span className="orbit-chip one">
+              Brand Memory
+            </span>
+
+            <span className="orbit-chip two">
+              Research
+            </span>
+
+            <span className="orbit-chip three">
+              QA
+            </span>
           </div>
         </section>
 
+        {/* QUICK START */}
+
         <section className="section">
           <div className="section-head">
-            <div><span className="section-kicker">CREATE</span><h3>شروع سریع</h3></div>
-            <Link href="/orders/new">مشاهده همه <ChevronLeft size={15} /></Link>
+            <div>
+              <span className="section-kicker">CREATE</span>
+              <h3>Quick Start</h3>
+            </div>
+
+            <Link href="/orders/new">
+              View All
+              <ChevronLeft size={15} />
+            </Link>
           </div>
+
           <div className="content-types">
-            {contentTypes.map(({ title, sub, href, icon: Icon }) => (
-              <Link href={href} className="content-type" key={title}>
-                <span className="type-icon"><Icon size={21} /></span>
-                <span className="type-copy"><strong>{title}</strong><small>{sub}</small></span>
-                <ChevronLeft className="arrow" size={16} />
-              </Link>
-            ))}
+            {contentTypes.map(
+              ({ title, sub, href, icon: Icon }) => (
+                <Link
+                  href={href}
+                  className="content-type"
+                  key={title}
+                >
+                  <span className="type-icon">
+                    <Icon size={21} />
+                  </span>
+
+                  <span className="type-copy">
+                    <strong>{title}</strong>
+                    <small>{sub}</small>
+                  </span>
+
+                  <ChevronLeft
+                    className="arrow"
+                    size={16}
+                  />
+                </Link>
+              ),
+            )}
           </div>
         </section>
+
+        {/* PRODUCTION STATUS */}
 
         <section className="dashboard-grid">
           <div className="panel">
             <div className="panel-head">
-              <div><span className="section-kicker">TODAY</span><h3>وضعیت تولید</h3></div>
-              <span className="period">این هفته</span>
+              <div>
+                <span className="section-kicker">
+                  TODAY
+                </span>
+
+                <h3>Production Status</h3>
+              </div>
+
+              <span className="period">
+                This Week
+              </span>
             </div>
+
             <div className="stats">
-              <div><b>08</b><small>در حال تولید</small></div>
-              <div><b>05</b><small>منتظر بررسی</small></div>
-              <div><b>21</b><small>تأیید شده</small></div>
+              {productionStatuses.map(
+                ({ number, label, href }) => (
+                  <Link
+                    href={href}
+                    key={label}
+                    className="stats-card"
+                  >
+                    <b>{number}</b>
+                    <small>{label}</small>
+                  </Link>
+                ),
+              )}
             </div>
-            <div className="progress-track"><span style={{ width: "72%" }} /></div>
-            <div className="progress-meta"><span>پیشرفت سفارش‌های فعال</span><b>72%</b></div>
+
+            <div className="progress-track">
+              <span style={{ width: "72%" }} />
+            </div>
+
+            <div className="progress-meta">
+              <span>Active Orders Progress</span>
+              <b>72%</b>
+            </div>
           </div>
+
+          {/* RECENT CUSTOMERS */}
 
           <div className="panel">
             <div className="panel-head">
-              <div><span className="section-kicker">CLIENTS</span><h3>مشتری‌های اخیر</h3></div>
-              <Link href="/customers">همه مشتری‌ها <ChevronLeft size={15} /></Link>
+              <div>
+                <span className="section-kicker">
+                  CLIENTS
+                </span>
+
+                <h3>Recent Customers</h3>
+              </div>
+
+              <Link href="/customers">
+                View All
+                <ChevronLeft size={15} />
+              </Link>
             </div>
+
             {[
-              ["دکتر نادری", "دندانپزشکی", "DN"],
-              ["استودیو آریا", "عکاسی", "AR"],
-              ["سوان هانی", "عسل و محصولات طبیعی", "SH"],
+              ["Dr. Naderi", "Dental Clinic", "DN"],
+              ["Aria Studio", "Photography", "AR"],
+              ["Savan Honey", "Natural Products", "SH"],
             ].map(([name, field, initials]) => (
-              <Link href="/customers" className="client-row" key={name}>
-                <span className="client-avatar">{initials}</span>
-                <span><strong>{name}</strong><small>{field}</small></span>
+              <Link
+                href="/customers"
+                className="client-row"
+                key={name}
+              >
+                <span className="client-avatar">
+                  {initials}
+                </span>
+
+                <span>
+                  <strong>{name}</strong>
+                  <small>{field}</small>
+                </span>
+
                 <i />
               </Link>
             ))}
           </div>
         </section>
 
+        {/* CONTENT MEMORY */}
+
         <section className="section">
           <div className="section-head">
-            <div><span className="section-kicker">CONTENT MEMORY</span><h3>آخرین محتواها</h3></div>
-            <Link href="/memory">تاریخچه کامل <ChevronLeft size={15} /></Link>
+            <div>
+              <span className="section-kicker">
+                CONTENT MEMORY
+              </span>
+
+              <h3>Recent Content</h3>
+            </div>
+
+            <Link href="/memory">
+              Full History
+              <ChevronLeft size={15} />
+            </Link>
           </div>
+
           <div className="content-table">
-            <div className="table-row table-head"><span>مشتری</span><span>نوع</span><span>موضوع</span><span>وضعیت</span></div>
-            <div className="table-row"><span>دکتر نادری</span><span>کاروسل</span><span>۵ اشتباه رایج در مسواک زدن</span><b className="status approved">تأیید شده</b></div>
-            <div className="table-row"><span>استودیو آریا</span><span>استوری</span><span>پشت صحنه عکاسی برند</span><b className="status review">در بررسی</b></div>
-            <div className="table-row"><span>سوان هانی</span><span>ریلز پک</span><span>چطور عسل طبیعی را تشخیص دهیم؟</span><b className="status production">در تولید</b></div>
+            <div className="table-row table-head">
+              <span>Customer</span>
+              <span>Type</span>
+              <span>Topic</span>
+              <span>Status</span>
+            </div>
+
+            <Link
+              href="/content/dental-brushing"
+              className="table-row"
+            >
+              <span>Dr. Naderi</span>
+              <span>Carousel</span>
+              <span>
+                5 Common Toothbrushing Mistakes
+              </span>
+              <b className="status approved">
+                Approved
+              </b>
+            </Link>
+
+            <Link
+              href="/content/aria-behind-scenes"
+              className="table-row"
+            >
+              <span>Aria Studio</span>
+              <span>Stories</span>
+              <span>
+                Behind the Scenes of Brand Photography
+              </span>
+              <b className="status review">
+                In Review
+              </b>
+            </Link>
+
+            <Link
+              href="/content/savan-natural-honey"
+              className="table-row"
+            >
+              <span>Savan Honey</span>
+              <span>Reels Pack</span>
+              <span>
+                How to Identify Natural Honey
+              </span>
+              <b className="status production">
+                In Production
+              </b>
+            </Link>
           </div>
         </section>
       </section>
