@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import NewOrderForm from "../NewOrderForm";
 
 export default function SuggestionOrder() {
-  return <NewOrderForm mode="suggestion" />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NewOrderForm />
+    </Suspense>
+  );
 }

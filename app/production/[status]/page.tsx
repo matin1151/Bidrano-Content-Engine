@@ -1,85 +1,364 @@
-
 "use client";
 
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Circle,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 
 type Order = {
-  id: string; customerName: string; contentType: string; topic: string;
-  status: string; createdAt: string; currentStep: number; pipeline: string[];
+  id: string;
+  customerId?: string;
+  customerName?: string;
+  customerField?: string;
+  contentType?: string;
+  topic?: string;
+  instructions?: string;
+  source?: string;
+  status?: string;
+  createdAt?: string;
+  pipeline?: string[];
+  currentStep?: number;
 };
 
-const fallback: Order[] = [
-  { id: "001", customerName: "دکتر نادری", contentType: "Carousel", topic: "۵ اشتباه رایج در مسواک زدن", status: "review", createdAt: new Date().toISOString(), currentStep: 5, pipeline: ["Order Context","Research","Strategy & Copy","Visual","QA"] },
-  { id: "002", customerName: "سوان هانی", contentType: "Stories", topic: "چطور عسل طبیعی را تشخیص دهیم؟", status: "in-progress", createdAt: new Date().toISOString(), currentStep: 2, pipeline: ["Order Context","Research","Strategy & Copy","Visual","QA"] },
-  { id: "003", customerName: "استودیو آریا", contentType: "Reels Pack", topic: "پشت صحنه عکاسی برند", status: "approved", createdAt: new Date().toISOString(), currentStep: 5, pipeline: ["Order Context","Research","Strategy & Copy","Visual","QA"] },
+const PIPELINE = [
+  "Order Context",
+  "Research",
+  "Strategy & Copy",
+  "Visual",
+  "QA",
 ];
 
-export default function ProductionStatus({ params }: { params: Promise<{ status: string }> }) {
+function readOrder(orderId?: string): Order | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    if (orderId) {
+      const direct = localStorage.getItem(`bidrano_order_${orderId}`);
+      if (direct) return JSON.parse(direct) as Order;
+    }
+
+    const current = localStorage.getItem("bidrano_current_order");
+    if (current) {
+      const parsed = JSON.parse(current) as Order;
+      if (!orderId || parsed.id === orderId) return parsed;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function saveOrder(order: Order) {
+  localStorage.setItem(`bidrano_order_${order.id}`, JSON.stringify(order));
+  localStorage.setItem("bidrano_current_order", JSON.stringify(order));
+}
+
+export default function ProductionStatus({
+  params,
+}: {
+  params: Promise<{ status: string }>;
+}) {
   const [status, setStatus] = useState("in-progress");
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    params.then((p) => setStatus(["in-progress", "review", "approved"].includes(p.status) ? p.status : "in-progress"));
+    let active = true;
+
+    params
+      .then((resolved) => {
+        if (!active) return;
+
+        setStatus(resolved.status);
+
+        const query = new URLSearchParams(window.location.search);
+        const orderId = query.get("order") || undefined;
+        const existing = readOrder(orderId);
+
+        if (existing) {
+          setOrder(existing);
+        }
+
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (active) setLoaded(true);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [params]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    function readOrder() {
-      const raw = localStorage.getItem("bidrano_current_order");
-      if (!raw) {
-        setOrders(fallback.filter((o) => o.status === status));
-        return;
-      }
-
-      try {
-        const order: Order = JSON.parse(raw);
-        setOrders(order.status === status ? [order] : []);
-
-        if (order.status === "in-progress" && order.currentStep < order.pipeline.length) {
-          const timer = window.setTimeout(() => {
-            if (cancelled) return;
-            const next = { ...order, currentStep: order.currentStep + 1 };
-            if (next.currentStep >= next.pipeline.length) next.status = "review";
-            localStorage.setItem("bidrano_current_order", JSON.stringify(next));
-            localStorage.setItem("bidrano_order_" + next.id, JSON.stringify(next));
-            readOrder();
-          }, 1400);
-          return () => window.clearTimeout(timer);
-        }
-      } catch {
-        setOrders(fallback.filter((o) => o.status === status));
-      }
+    if (!order || order.status === "review" || order.status === "approved") {
+      return;
     }
 
-    const cleanup = readOrder();
-    return () => {
-      cancelled = true;
-      if (typeof cleanup === "function") cleanup();
-    };
+    if (order.status !== "in-progress") {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      const nextStep = Math.min(
+        (order.currentStep ?? 0) + 1,
+        PIPELINE.length
+      );
+
+      const nextStatus =
+        nextStep >= PIPELINE.length ? "review" : "in-progress";
+
+      const updated: Order = {
+        ...order,
+        currentStep: nextStep,
+        status: nextStatus,
+        pipeline: PIPELINE,
+      };
+
+      saveOrder(updated);
+      setOrder(updated);
+    }, 1400);
+
+    return () => window.clearTimeout(timer);
+  }, [order]);
+
+  const pageTitle = useMemo(() => {
+    switch (status) {
+      case "review":
+      case "needs-review":
+        return "Needs Review";
+      case "completed":
+      case "approved":
+        return "Completed";
+      case "revision":
+        return "Revision";
+      default:
+        return "In Progress";
+    }
   }, [status]);
 
-  const title = status === "review" ? "Needs Review" : status === "approved" ? "Approved" : "In Progress";
+  if (!loaded) {
+    return (
+      <main className="page-shell">
+        <section className="page-main">
+          <div className="empty-state">
+            <Loader2 className="spin" size={24} />
+            <h2>Loading production...</h2>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!order) {
+    return (
+      <main className="page-shell">
+        <section className="page-main">
+          <div className="page-header">
+            <div>
+              <span className="eyebrow">PRODUCTION</span>
+              <h1>{pageTitle}</h1>
+              <p>Orders currently in this production state.</p>
+            </div>
+          </div>
+
+          <div className="empty-state">
+            <h2>No order found</h2>
+            <p>
+              The production order could not be found in this browser session.
+            </p>
+
+            <Link href="/orders/new" className="button primary">
+              New Content
+              <ArrowLeft size={16} />
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  const currentStep = Math.min(order.currentStep ?? 0, PIPELINE.length);
+  const isReview = order.status === "review";
 
   return (
     <main className="page-shell">
-      <aside className="mini-sidebar"><Link href="/" className="mini-logo">B</Link></aside>
       <section className="page-main">
-        <header className="page-header">
-          <div><Link href="/production" className="back-link"><ChevronRight size={15} /> Production</Link><span className="eyebrow">STATUS</span><h1>{title}</h1><p>Orders currently in this production state.</p></div>
-        </header>
+        <div className="page-header">
+          <div>
+            <span className="eyebrow">
+              {isReview ? "READY FOR REVIEW" : "PRODUCTION"}
+            </span>
 
-        <div className="status-detail-list">
-          {orders.length === 0 && <div className="profile-card"><h2>No orders in this status</h2><p>Create a content order to start the pipeline.</p><Link href="/orders/new" className="button primary">New Content</Link></div>}
-          {orders.map((o) => (
-            <Link href={"/content/" + o.id} className="status-detail-row" key={o.id}>
-              <span>{o.id.slice(-2).padStart(2, "0")}</span>
-              <div><strong>{o.topic}</strong><small>{o.customerName} • {o.contentType} • {new Date(o.createdAt).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}</small></div>
-              {o.status === "in-progress" ? <LoaderCircle className="spin" size={17} /> : <ChevronLeft size={17} />}
+            <h1>{isReview ? "Needs Review" : "In Progress"}</h1>
+
+            <p>
+              {isReview
+                ? "The production pipeline is complete and the order is ready for operator review."
+                : "Bidrano is moving this order through the production pipeline."}
+            </p>
+          </div>
+
+          <div className="header-actions">
+            <Link href="/production" className="button secondary">
+              Production
             </Link>
-          ))}
+          </div>
+        </div>
+
+        <div className="production-layout">
+          <section className="production-card">
+            <div className="production-card-header">
+              <div>
+                <span className="eyebrow">ORDER</span>
+                <h2>{order.topic || "Untitled Content"}</h2>
+              </div>
+
+              <span className={`status-pill ${isReview ? "review" : ""}`}>
+                {isReview ? "Needs Review" : "In Progress"}
+              </span>
+            </div>
+
+            <div className="order-meta-grid">
+              <div>
+                <span>Customer</span>
+                <strong>{order.customerName || "—"}</strong>
+              </div>
+
+              <div>
+                <span>Business / Specialty</span>
+                <strong>{order.customerField || "—"}</strong>
+              </div>
+
+              <div>
+                <span>Content Type</span>
+                <strong>{order.contentType || "—"}</strong>
+              </div>
+
+              <div>
+                <span>Order ID</span>
+                <strong>{order.id}</strong>
+              </div>
+            </div>
+
+            {order.instructions && (
+              <div className="order-instructions">
+                <span>Instructions</span>
+                <p>{order.instructions}</p>
+              </div>
+            )}
+          </section>
+
+          <section className="production-card pipeline-card">
+            <div className="production-card-header">
+              <div>
+                <span className="eyebrow">PIPELINE</span>
+                <h2>Production Stages</h2>
+              </div>
+
+              {!isReview && (
+                <div className="pipeline-running">
+                  <Loader2 className="spin" size={17} />
+                  Running
+                </div>
+              )}
+
+              {isReview && (
+                <div className="pipeline-running complete">
+                  <CheckCircle2 size={17} />
+                  Complete
+                </div>
+              )}
+            </div>
+
+            <div className="pipeline-list">
+              {PIPELINE.map((step, index) => {
+                const done = index < currentStep;
+                const active = index === currentStep && !isReview;
+
+                return (
+                  <div className="pipeline-step" key={step}>
+                    <div className="pipeline-icon">
+                      {done || (isReview && index < PIPELINE.length) ? (
+                        <CheckCircle2 size={21} />
+                      ) : active ? (
+                        <Loader2 className="spin" size={21} />
+                      ) : (
+                        <Circle size={21} />
+                      )}
+                    </div>
+
+                    <div className="pipeline-step-copy">
+                      <strong>{step}</strong>
+                      <span>
+                        {done
+                          ? "Completed"
+                          : active
+                            ? "In progress..."
+                            : "Waiting"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {isReview && (
+              <div className="review-ready">
+                <div>
+                  <CheckCircle2 size={22} />
+                  <div>
+                    <strong>Production complete</strong>
+                    <p>
+                      Review the generated content before approving or
+                      regenerating it.
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href={`/content/${encodeURIComponent(order.id)}`}
+                  className="button primary"
+                >
+                  Open Review
+                  <ArrowLeft size={16} />
+                </Link>
+              </div>
+            )}
+
+            {!isReview && (
+              <div className="pipeline-progress">
+                <div className="progress-label">
+                  <span>Pipeline progress</span>
+                  <strong>
+                    {currentStep} / {PIPELINE.length}
+                  </strong>
+                </div>
+
+                <div className="progress-track">
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: `${(currentStep / PIPELINE.length) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="production-footer">
+          <Link href="/orders/new" className="button secondary">
+            <RefreshCw size={16} />
+            Create Another Order
+          </Link>
         </div>
       </section>
     </main>

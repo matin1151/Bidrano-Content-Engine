@@ -1,175 +1,341 @@
-
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Check, ChevronRight, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
+import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 
-type ContentType = "carousel" | "stories" | "reels";
-export type OrderMode = "generic" | "topic" | "suggestion";
-
-type Suggestion = { title: string; reason: string };
-
-const profiles: Record<string, { name: string; field: string; audience: string }> = {
-  naderi: { name: "دکتر نادری", field: "دندانپزشکی", audience: "بانوان و خانواده‌ها، ۲۵ تا ۴۵ سال" },
-  aria: { name: "استودیو آریا", field: "عکاسی و برندینگ", audience: "کسب‌وکارهای کوچک و برندهای شخصی" },
-  savan: { name: "سوان هانی", field: "عسل و محصولات طبیعی", audience: "خانواده‌ها و خریداران محصولات طبیعی" },
+type Customer = {
+  id: string;
+  name: string;
+  field: string;
 };
 
-const suggestions: Record<string, Suggestion[]> = {
+type Suggestion = {
+  id: string;
+  title: string;
+  description: string;
+};
+
+const DEFAULT_CUSTOMERS: Customer[] = [
+  { id: "naderi", name: "Dr. Naderi", field: "Dental Clinic" },
+  { id: "aria", name: "Aria Studio", field: "Product Photography" },
+  { id: "savan", name: "Savan Natural Honey", field: "Natural Honey" },
+];
+
+const SUGGESTIONS: Record<string, Suggestion[]> = {
   naderi: [
-    { title: "۳ نشانه که می‌گویند وقت چکاپ دندان رسیده", reason: "موضوع آموزشی و خدماتی مناسب برای مخاطب عمومی کلینیک." },
-    { title: "۵ اشتباه رایج در مسواک زدن", reason: "موضوع آموزشی قابل تبدیل به Carousel." },
-    { title: "چرا با وجود مسواک زدن هنوز دندان‌ها آسیب می‌بینند؟", reason: "پاسخ به یک سؤال رایج و مناسب برای تعامل." },
+    {
+      id: "naderi-1",
+      title: "۳ نشانه که می‌گویند وقت چکاپ دندان رسیده",
+      description: "Educational carousel for dental patients.",
+    },
+    {
+      id: "naderi-2",
+      title: "۵ اشتباه رایج در مسواک زدن",
+      description: "Practical educational content for patients.",
+    },
+    {
+      id: "naderi-3",
+      title: "چرا با وجود مسواک زدن هنوز دندان‌ها آسیب می‌بینند؟",
+      description: "Awareness content explaining common causes.",
+    },
   ],
   aria: [
-    { title: "۵ اشتباه رایج در عکاسی محصول برای اینستاگرام", reason: "موضوع آموزشی مرتبط با خدمات استودیو." },
-    { title: "قبل و بعد: نورپردازی چه چیزی را تغییر می‌دهد؟", reason: "موضوع بصری مناسب برای نمایش توانایی استودیو." },
-    { title: "چطور برای یک برند عکس حرفه‌ای برنامه‌ریزی کنیم؟", reason: "آشنایی مخاطب با فرایند حرفه‌ای تولید محتوا." },
+    {
+      id: "aria-1",
+      title: "۵ اشتباه رایج در عکاسی محصول برای اینستاگرام",
+      description: "Educational content for product brands.",
+    },
+    {
+      id: "aria-2",
+      title: "قبل و بعد: نورپردازی چه چیزی را تغییر می‌دهد؟",
+      description: "Visual comparison content.",
+    },
+    {
+      id: "aria-3",
+      title: "چطور برای یک برند عکس حرفه‌ای برنامه‌ریزی کنیم؟",
+      description: "Practical content for business owners.",
+    },
   ],
   savan: [
-    { title: "چطور عسل طبیعی را از نمونه‌های تقلبی تشخیص دهیم؟", reason: "موضوع آموزشی مرتبط با دغدغه خرید." },
-    { title: "عسل گون چه ویژگی‌هایی دارد؟", reason: "معرفی محصول بدون ادعای درمانی." },
-    { title: "از کندو تا شیشه: مسیر تولید عسل سوان", reason: "مناسب برای Story و Reels پشت‌صحنه." },
+    {
+      id: "savan-1",
+      title: "چطور عسل طبیعی را از نمونه‌های تقلبی تشخیص دهیم؟",
+      description: "Educational content for honey buyers.",
+    },
+    {
+      id: "savan-2",
+      title: "عسل گون چه ویژگی‌هایی دارد؟",
+      description: "Product education and awareness.",
+    },
+    {
+      id: "savan-3",
+      title: "از کندو تا شیشه: مسیر تولید عسل سوان",
+      description: "Brand storytelling content.",
+    },
   ],
 };
 
-export default function NewOrderForm({ mode }: { mode: OrderMode }) {
-  const [type, setType] = useState<ContentType>("carousel");
-  const [customer, setCustomer] = useState("naderi");
-  const [topic, setTopic] = useState("");
+const CONTENT_TYPES = [
+  "Carousel",
+  "Post",
+  "Story",
+  "Reel",
+];
+
+function loadCustomers(): Customer[] {
+  if (typeof window === "undefined") return DEFAULT_CUSTOMERS;
+
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem("bidrano_customers") || "[]"
+    );
+
+    if (!Array.isArray(saved)) return DEFAULT_CUSTOMERS;
+
+    const custom = saved
+      .filter(
+        (item): item is Customer =>
+          Boolean(item?.id && item?.name && item?.field)
+      )
+      .map((item) => ({
+        id: String(item.id),
+        name: String(item.name),
+        field: String(item.field),
+      }));
+
+    return [...DEFAULT_CUSTOMERS, ...custom];
+  } catch {
+    return DEFAULT_CUSTOMERS;
+  }
+}
+
+export default function NewOrderForm() {
+  const searchParams = useSearchParams();
+
+  const requestedCustomer = searchParams.get("customer") || "";
+  const requestedTopic = searchParams.get("topic") || "";
+  const requestedType = searchParams.get("type") || "";
+  const mode = searchParams.get("mode") || "manual";
+
+  const customers = useMemo(() => loadCustomers(), []);
+
+  const initialCustomer =
+    customers.find((customer) => customer.id === requestedCustomer) ||
+    customers[0];
+
+  const [customerId, setCustomerId] = useState(initialCustomer?.id || "");
+  const [contentType, setContentType] = useState(
+    requestedType || "Carousel"
+  );
+  const [topic, setTopic] = useState(requestedTopic);
   const [instructions, setInstructions] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const profile = profiles[customer];
-  const available = useMemo(() => suggestions[customer] || suggestions.naderi, [customer]);
+  const customer =
+    customers.find((item) => item.id === customerId) || initialCustomer;
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const c = params.get("customer");
-    if (c && profiles[c]) setCustomer(c);
-  }, []);
+  const customerSuggestions =
+    SUGGESTIONS[customer?.id] || SUGGESTIONS.naderi;
 
-  useEffect(() => {
-    if (mode === "suggestion" && available[0]) {
-      setSelectedSuggestion(available[0].title);
-      setTopic(available[0].title);
-    }
-  }, [mode, available]);
+  function chooseSuggestion(suggestion: Suggestion) {
+    setSelectedSuggestion(suggestion.id);
+    setTopic(suggestion.title);
+  }
 
   function startProduction() {
-    const finalTopic = mode === "suggestion" ? selectedSuggestion : topic;
-    if (!finalTopic.trim()) {
-      alert("Please select or enter a topic first.");
+    const cleanTopic = topic.trim();
+
+    if (!customer) {
+      alert("Please select a customer first.");
       return;
     }
 
+    if (!cleanTopic) {
+      alert("Please specify a topic before starting production.");
+      return;
+    }
+
+    setSaving(true);
+
     const order = {
       id: "ORD-" + Date.now(),
-      customerId: customer,
-      customerName: profile.name,
-      customerField: profile.field,
-      contentType: type,
-      topic: finalTopic,
-      instructions,
-      source: mode,
+      customerId: customer.id,
+      customerName: customer.name,
+      customerField: customer.field,
+      contentType,
+      topic: cleanTopic,
+      instructions: instructions.trim(),
+      source: mode === "suggestion" ? "Today's Suggestion" : "Manual",
       status: "in-progress",
       createdAt: new Date().toISOString(),
-      pipeline: ["Order Context", "Research", "Strategy & Copy", "Visual", "QA"],
-      currentStep: 1,
+      pipeline: [
+        "Order Context",
+        "Research",
+        "Strategy & Copy",
+        "Visual",
+        "QA",
+      ],
+      currentStep: 0,
     };
 
+    localStorage.setItem(
+      `bidrano_order_${order.id}`,
+      JSON.stringify(order)
+    );
     localStorage.setItem("bidrano_current_order", JSON.stringify(order));
-    localStorage.setItem("bidrano_order_" + order.id, JSON.stringify(order));
-    window.location.href = "/production/in-progress?order=" + encodeURIComponent(order.id);
+
+    window.location.href = `/production/in-progress?order=${encodeURIComponent(
+      order.id
+    )}`;
   }
 
   return (
-    <main className="order-page">
-      <div className="order-top">
-        <Link href="/" className="back-link"><ChevronRight size={15} />Dashboard</Link>
-        <span className="eyebrow">{mode === "topic" ? "TOPIC ORDER" : mode === "suggestion" ? "SUGGESTION" : "NEW ORDER"}</span>
-      </div>
+    <main className="page-shell">
+      <section className="page-main">
+        <div className="page-header">
+          <div>
+            <Link href="/" className="back-link">
+              <ChevronRight size={15} />
+              Dashboard
+            </Link>
 
-      <div className="order-layout">
-        <section>
-          <div className="order-heading">
-            <h1>{mode === "topic" ? "Start from a Topic" : mode === "suggestion" ? "Today's Suggestion" : "New Content Order"}</h1>
-            <p>{mode === "suggestion" ? "Choose a real content direction generated from the customer context." : "Define the request, then start the production pipeline."}</p>
+            <span className="eyebrow">NEW CONTENT ORDER</span>
+            <h1>Create Content Order</h1>
+            <p>
+              Define the customer, content type and topic before starting the
+              production pipeline.
+            </p>
           </div>
+        </div>
 
-          <div className="form-card">
-            <Step n="01" title="Customer">
-              <select value={customer} onChange={(e) => setCustomer(e.target.value)}>
-                <option value="naderi">Dr. Naderi — Dentistry</option>
-                <option value="aria">Aria Studio — Photography</option>
-                <option value="savan">Savan Honey — Honey Brand</option>
-              </select>
-            </Step>
-
-            <Step n="02" title="Content Type">
-              <div className="choice-grid">
-                {([["carousel", "Carousel Post"], ["stories", "Story Series"], ["reels", "Reels Production Pack"]] as const).map(([value, label]) => (
-                  <button key={value} type="button" className={"choice " + (type === value ? "selected" : "")} onClick={() => setType(value)}>
-                    {type === value && <span className="check"><Check size={13} /></span>}
-                    <strong>{label}</strong>
-                  </button>
-                ))}
+        <div className="new-order-layout">
+          <section className="order-form-card">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">ORDER CONTEXT</span>
+                <h2>Content brief</h2>
               </div>
-            </Step>
-
-            {mode === "topic" && (
-              <Step n="03" title="Topic">
-                <textarea value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Example: 5 common brushing mistakes that can damage your teeth" />
-              </Step>
-            )}
-
-            {mode === "suggestion" && (
-              <Step n="03" title="Bidrano Suggestions">
-                <div className="suggestion-list">
-                  {available.map((s) => (
-                    <button key={s.title} type="button" className={"suggestion-choice " + (selectedSuggestion === s.title ? "selected" : "")}
-                      onClick={() => { setSelectedSuggestion(s.title); setTopic(s.title); }}>
-                      <span>{selectedSuggestion === s.title ? "✓" : "○"}</span>
-                      <strong>{s.title}</strong>
-                      <small>{s.reason}</small>
-                    </button>
-                  ))}
-                </div>
-              </Step>
-            )}
-
-            <Step n={mode === "generic" ? "03" : "04"} title="Additional Instructions">
-              <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Campaign notes, occasion, product, restrictions or specific customer instructions..." />
-            </Step>
-
-            <div className="production-note">
-              <Sparkles size={18} />
-              <span><strong>Production is ready.</strong><small>Click Start Production to create an order and enter the pipeline.</small></span>
             </div>
 
-            <button type="button" onClick={startProduction} className="start-production">
-              <span>Start Production</span><ArrowLeft size={17} />
-            </button>
-          </div>
-        </section>
+            <div className="form-grid">
+              <label className="field-input">
+                <span>Customer</span>
+                <select
+                  value={customerId}
+                  onChange={(event) => {
+                    setCustomerId(event.target.value);
+                    setSelectedSuggestion("");
+                  }}
+                >
+                  {customers.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} — {item.field}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-        <aside className="order-summary">
-          <div className="summary-card">
-            <span className="section-kicker">ORDER CONTEXT</span>
-            <h3>{profile.name}</h3>
-            <p>{profile.field} • {profile.audience}</p>
-            <div className="summary-line"><span>Type</span><b>{type === "carousel" ? "Carousel" : type === "stories" ? "Stories" : "Reels Pack"}</b></div>
-            <div className="summary-line"><span>Flow</span><b>{mode === "topic" ? "User Topic" : mode === "suggestion" ? "Bidrano Suggestion" : "Manual Order"}</b></div>
-            <div className="summary-line"><span>Topic</span><b>{mode === "suggestion" ? selectedSuggestion : topic || "Not selected"}</b></div>
-            <div className="summary-line"><span>Status</span><b className="status review">Ready to Start</b></div>
-          </div>
-        </aside>
-      </div>
+              <label className="field-input">
+                <span>Content Type</span>
+                <select
+                  value={contentType}
+                  onChange={(event) => setContentType(event.target.value)}
+                >
+                  {CONTENT_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="field-input full">
+                <span>Topic</span>
+                <input
+                  value={topic}
+                  onChange={(event) => {
+                    setTopic(event.target.value);
+                    setSelectedSuggestion("");
+                  }}
+                  placeholder="موضوع محتوا را وارد کنید یا یکی از پیشنهادها را انتخاب کنید"
+                />
+                <small>
+                  اگر از Today's Suggestion آمده‌ای، موضوع انتخاب‌شده اینجا
+                  خودکار قرار می‌گیرد.
+                </small>
+              </label>
+
+              <label className="field-input full">
+                <span>Additional Instructions</span>
+                <textarea
+                  value={instructions}
+                  onChange={(event) => setInstructions(event.target.value)}
+                  placeholder="لحن، CTA، محدودیت‌ها یا توضیحات خاص سفارش..."
+                  rows={5}
+                />
+              </label>
+            </div>
+          </section>
+
+          <aside className="order-form-card suggestion-card">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">SUGGESTIONS</span>
+                <h2>Today's Suggestions</h2>
+              </div>
+            </div>
+
+            <p className="muted-copy">
+              انتخاب یک پیشنهاد، Topic سفارش را به‌صورت خودکار پر می‌کند.
+            </p>
+
+            <div className="suggestion-list">
+              {customerSuggestions.map((suggestion) => {
+                const selected = selectedSuggestion === suggestion.id;
+
+                return (
+                  <button
+                    type="button"
+                    key={suggestion.id}
+                    className={`suggestion-option ${
+                      selected ? "selected" : ""
+                    }`}
+                    onClick={() => chooseSuggestion(suggestion)}
+                  >
+                    <span className="suggestion-check">
+                      {selected ? <CheckCircle2 size={19} /> : "○"}
+                    </span>
+
+                    <span>
+                      <strong>{suggestion.title}</strong>
+                      <small>{suggestion.description}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+        </div>
+
+        <div className="form-actions">
+          <Link href="/" className="button secondary">
+            Cancel
+          </Link>
+
+          <button
+            type="button"
+            className="button primary"
+            onClick={startProduction}
+            disabled={saving}
+          >
+            {saving ? "Starting..." : "Start Production"}
+            <ArrowLeft size={16} />
+          </button>
+        </div>
+      </section>
     </main>
   );
-}
-
-function Step({ n, title, children }: { n: string; title: string; children: React.ReactNode }) {
-  return <div className="form-step"><div className="step-title"><span>{n}</span><h2>{title}</h2></div>{children}</div>;
 }
