@@ -18,25 +18,25 @@ type Suggestion = {
 };
 
 const DEFAULT_CUSTOMERS: Customer[] = [
-  { id: "naderi", name: "Dr. Naderi", field: "Dental Clinic" },
+  { id: "dental-demo", name: "Dr. Naderi", field: "Dental Clinic" },
   { id: "aria", name: "Aria Studio", field: "Product Photography" },
   { id: "savan", name: "Savan Natural Honey", field: "Natural Honey" },
 ];
 
 const SUGGESTIONS: Record<string, Suggestion[]> = {
-  naderi: [
+  "dental-demo": [
     {
-      id: "naderi-1",
+      id: "dental-demo-1",
       title: "۳ نشانه که می‌گویند وقت چکاپ دندان رسیده",
       description: "Educational carousel for dental patients.",
     },
     {
-      id: "naderi-2",
+      id: "dental-demo-2",
       title: "۵ اشتباه رایج در مسواک زدن",
       description: "Practical educational content for patients.",
     },
     {
-      id: "naderi-3",
+      id: "dental-demo-3",
       title: "چرا با وجود مسواک زدن هنوز دندان‌ها آسیب می‌بینند؟",
       description: "Awareness content explaining common causes.",
     },
@@ -77,20 +77,17 @@ const SUGGESTIONS: Record<string, Suggestion[]> = {
   ],
 };
 
-const CONTENT_TYPES = [
-  "Carousel",
-  "Post",
-  "Story",
-  "Reel",
-];
+const CONTENT_TYPES = ["Carousel", "Post", "Story", "Reel"];
+
+function normalizeCustomerId(id: string) {
+  return id === "naderi" ? "dental-demo" : id;
+}
 
 function loadCustomers(): Customer[] {
   if (typeof window === "undefined") return DEFAULT_CUSTOMERS;
 
   try {
-    const saved = JSON.parse(
-      localStorage.getItem("bidrano_customers") || "[]"
-    );
+    const saved = JSON.parse(localStorage.getItem("bidrano_customers") || "[]");
 
     if (!Array.isArray(saved)) return DEFAULT_CUSTOMERS;
 
@@ -100,10 +97,11 @@ function loadCustomers(): Customer[] {
           Boolean(item?.id && item?.name && item?.field)
       )
       .map((item) => ({
-        id: String(item.id),
+        id: normalizeCustomerId(String(item.id)),
         name: String(item.name),
         field: String(item.field),
-      }));
+      }))
+      .filter((item) => !DEFAULT_CUSTOMERS.some((base) => base.id === item.id));
 
     return [...DEFAULT_CUSTOMERS, ...custom];
   } catch {
@@ -114,7 +112,7 @@ function loadCustomers(): Customer[] {
 export default function NewOrderForm() {
   const searchParams = useSearchParams();
 
-  const requestedCustomer = searchParams.get("customer") || "";
+  const requestedCustomer = normalizeCustomerId(searchParams.get("customer") || "");
   const requestedTopic = searchParams.get("topic") || "";
   const requestedType = searchParams.get("type") || "";
   const mode = searchParams.get("mode") || "manual";
@@ -122,23 +120,17 @@ export default function NewOrderForm() {
   const customers = useMemo(() => loadCustomers(), []);
 
   const initialCustomer =
-    customers.find((customer) => customer.id === requestedCustomer) ||
-    customers[0];
+    customers.find((customer) => customer.id === requestedCustomer) || customers[0];
 
   const [customerId, setCustomerId] = useState(initialCustomer?.id || "");
-  const [contentType, setContentType] = useState(
-    requestedType || "Carousel"
-  );
+  const [contentType, setContentType] = useState(requestedType || "Carousel");
   const [topic, setTopic] = useState(requestedTopic);
   const [instructions, setInstructions] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const customer =
-    customers.find((item) => item.id === customerId) || initialCustomer;
-
-  const customerSuggestions =
-    SUGGESTIONS[customer?.id] || SUGGESTIONS.naderi;
+  const customer = customers.find((item) => item.id === customerId) || initialCustomer;
+  const customerSuggestions = SUGGESTIONS[customer?.id] || SUGGESTIONS["dental-demo"];
 
   function chooseSuggestion(suggestion: Suggestion) {
     setSelectedSuggestion(suggestion.id);
@@ -171,25 +163,14 @@ export default function NewOrderForm() {
       source: mode === "suggestion" ? "Today's Suggestion" : "Manual",
       status: "in-progress",
       createdAt: new Date().toISOString(),
-      pipeline: [
-        "Order Context",
-        "Research",
-        "Strategy & Copy",
-        "Visual",
-        "QA",
-      ],
+      pipeline: ["Order Context", "Research", "Strategy & Copy", "Visual", "QA"],
       currentStep: 0,
     };
 
-    localStorage.setItem(
-      `bidrano_order_${order.id}`,
-      JSON.stringify(order)
-    );
+    localStorage.setItem(`bidrano_order_${order.id}`, JSON.stringify(order));
     localStorage.setItem("bidrano_current_order", JSON.stringify(order));
 
-    window.location.href = `/production/in-progress?order=${encodeURIComponent(
-      order.id
-    )}`;
+    window.location.href = `/production/in-progress?order=${encodeURIComponent(order.id)}`;
   }
 
   return (
@@ -300,9 +281,7 @@ export default function NewOrderForm() {
                   <button
                     type="button"
                     key={suggestion.id}
-                    className={`suggestion-option ${
-                      selected ? "selected" : ""
-                    }`}
+                    className={`suggestion-option ${selected ? "selected" : ""}`}
                     onClick={() => chooseSuggestion(suggestion)}
                   >
                     <span className="suggestion-check">
