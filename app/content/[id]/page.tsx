@@ -2,18 +2,48 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, History, RefreshCw, CheckCircle2 } from "lucide-react";
+import { ChevronRight, History, RefreshCw, CheckCircle2, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 
 type Order = {
   id: string; customerName: string; contentType: string; topic: string;
   instructions?: string; status: string; createdAt: string; currentStep: number; pipeline: string[];
+  revisionNote?: string;
 };
 
 export default function ContentDetail({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState("");
   const [order, setOrder] = useState<Order | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [revisionNote, setRevisionNote] = useState("");
+
+  function reviewOrder(status: "approved" | "revision") {
+    if (!order || order.status !== "review") return;
+    if (status === "revision" && !revisionNote.trim()) {
+      alert("Please enter a revision note.");
+      return;
+    }
+    const updated = { ...order, status, ...(status === "revision" ? { revisionNote: revisionNote.trim() } : {}) };
+    try {
+      const rawMemory = localStorage.getItem("bidrano_content_memory");
+      let memory: Order[] = [];
+      try {
+        const parsed = JSON.parse(rawMemory || "[]");
+        if (Array.isArray(parsed)) memory = parsed.filter((item): item is Order => Boolean(item?.id));
+      } catch {}
+      if (status === "approved") {
+        localStorage.setItem("bidrano_content_memory", JSON.stringify([...memory.filter((item) => item.id !== updated.id), updated]));
+      }
+      localStorage.setItem("bidrano_order_" + updated.id, JSON.stringify(updated));
+      const current = localStorage.getItem("bidrano_current_order");
+      let currentId: string | undefined;
+      try { currentId = JSON.parse(current || "null")?.id; } catch {}
+      if (currentId === updated.id) localStorage.setItem("bidrano_current_order", JSON.stringify(updated));
+      setOrder(updated);
+    } catch {
+      alert("Could not save the review. Please try again.");
+    }
+  }
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -56,8 +86,16 @@ export default function ContentDetail({ params }: { params: Promise<{ id: string
               <p><strong>Customer:</strong> {customer}</p>
               <p><strong>Format:</strong> {type}</p>
               {order?.instructions && <p><strong>Instructions:</strong> {order.instructions}</p>}
+              {order.revisionNote && <p><strong>Revision note:</strong> {order.revisionNote}</p>}
               <div className="detail-placeholder"><CheckCircle2 size={20} /><span><strong>Pipeline package created</strong><small>Order Context → Research → Strategy & Copy → Visual → QA</small></span></div>
             </div>
+            {order.status === "review" && <div>
+              <label className="field-input"><span>Revision note</span><textarea value={revisionNote} onChange={(event) => setRevisionNote(event.target.value)} rows={3} /></label>
+              <div className="form-actions">
+                <button type="button" className="button primary" onClick={() => reviewOrder("approved")}><CheckCircle2 size={16} /> Approve</button>
+                <button type="button" className="button secondary" onClick={() => reviewOrder("revision")}><MessageSquare size={16} /> Request revision</button>
+              </div>
+            </div>}
           </section>
 
           <section className="profile-card">

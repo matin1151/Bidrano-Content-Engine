@@ -3,7 +3,9 @@
 
 import Link from "next/link";
 import { FolderKanban, Search, ChevronLeft } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+type MemoryItem = { id: string; title: string; customer: string };
 
 const items = [
   { id: "001", title: "۵ اشتباه رایج در مسواک زدن", customer: "دکتر نادری" },
@@ -13,7 +15,21 @@ const items = [
 
 export default function Memory() {
   const [query, setQuery] = useState("");
-  const filtered = useMemo(() => items.filter((x) => (x.title + " " + x.customer).toLowerCase().includes(query.toLowerCase())), [query]);
+  const [approvedItems, setApprovedItems] = useState<MemoryItem[]>([]);
+  useEffect(() => {
+    function loadMemory() {
+      try {
+        const saved: unknown = JSON.parse(localStorage.getItem("bidrano_content_memory") || "[]");
+        if (!Array.isArray(saved)) { setApprovedItems([]); return; }
+        setApprovedItems(saved.filter((item) => item?.status === "approved" && typeof item.id === "string" && typeof item.topic === "string" && typeof item.customerName === "string")
+          .map((item) => ({ id: item.id, title: item.topic, customer: item.customerName })));
+      } catch { setApprovedItems([]); }
+    }
+    loadMemory();
+    window.addEventListener("storage", loadMemory);
+    return () => window.removeEventListener("storage", loadMemory);
+  }, []);
+  const filtered = useMemo(() => [...items.filter((item) => !approvedItems.some((saved) => saved.id === item.id)), ...approvedItems].filter((x) => (x.title + " " + x.customer).toLowerCase().includes(query.toLowerCase())), [query, approvedItems]);
 
   return <main className="page-shell">
     <aside className="mini-sidebar"><Link href="/" className="mini-logo">B</Link><Link href="/memory" className="mini-active"><FolderKanban size={19} /></Link></aside>
