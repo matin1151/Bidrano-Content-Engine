@@ -3,12 +3,21 @@
 
 import Link from "next/link";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const initial = { brand:"دکتر نادری", business:"دندانپزشکی", audience:"بانوان و خانواده‌ها، ۲۵ تا ۴۵ سال", tone:"حرفه‌ای، صمیمی، اطمینان‌بخش", phone:"021-00000000", address:"تهران، منطقه ۲", website:"drnaderi.example", instagram:"@drnaderi", rules:"ادعاهای درمانی بدون منبع منتشر نشود.\nاز لحن ترساننده استفاده نشود." };
 
 export default function EditCustomerProfile() {
   const [form, setForm] = useState(initial);
+  useEffect(() => {
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem("bidrano_naderi_profile") || "null");
+      if (saved && typeof saved === "object" && !Array.isArray(saved)) {
+        const values = saved as Record<string, unknown>;
+        setForm(Object.fromEntries(Object.entries(initial).map(([key, fallback]) => [key, typeof values[key] === "string" ? values[key] : fallback])) as typeof initial);
+      }
+    } catch { setForm(initial); }
+  }, []);
   const update = (key:keyof typeof initial, value:string) => setForm({ ...form, [key]:value });
   function save() { localStorage.setItem("bidrano_naderi_profile", JSON.stringify(form)); window.location.href="/customers/dental-demo"; }
 
