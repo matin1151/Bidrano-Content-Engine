@@ -4,7 +4,7 @@ import NewOrderForm from "../NewOrderForm";
 export default function SuggestionOrder() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <NewOrderForm />
+      <NewOrderForm mode="suggestion" />
     </Suspense>
   );
 }

@@ -109,13 +109,13 @@ function loadCustomers(): Customer[] {
   }
 }
 
-export default function NewOrderForm() {
+export default function NewOrderForm({ mode: routeMode }: { mode?: "manual" | "suggestion" | "topic" }) {
   const searchParams = useSearchParams();
 
   const requestedCustomer = normalizeCustomerId(searchParams.get("customer") || "");
   const requestedTopic = searchParams.get("topic") || "";
   const requestedType = searchParams.get("type") || "";
-  const mode = searchParams.get("mode") || "manual";
+  const mode = routeMode || searchParams.get("mode") || "manual";
 
   const customers = useMemo(() => loadCustomers(), []);
 
@@ -130,7 +130,7 @@ export default function NewOrderForm() {
   const [saving, setSaving] = useState(false);
 
   const customer = customers.find((item) => item.id === customerId) || initialCustomer;
-  const customerSuggestions = SUGGESTIONS[customer?.id] || SUGGESTIONS["dental-demo"];
+  const customerSuggestions = SUGGESTIONS[customer?.id] || [];
 
   function chooseSuggestion(suggestion: Suggestion) {
     setSelectedSuggestion(suggestion.id);
@@ -160,7 +160,7 @@ export default function NewOrderForm() {
       contentType,
       topic: cleanTopic,
       instructions: instructions.trim(),
-      source: mode === "suggestion" ? "Today's Suggestion" : "Manual",
+      source: mode === "suggestion" ? "Today's Suggestion" : mode === "topic" ? "Start from a Topic" : "Manual",
       status: "in-progress",
       createdAt: new Date().toISOString(),
       pipeline: ["Order Context", "Research", "Strategy & Copy", "Visual", "QA"],
@@ -274,6 +274,7 @@ export default function NewOrderForm() {
             </p>
 
             <div className="suggestion-list">
+              {customerSuggestions.length === 0 && <p className="muted-copy">No suggestions available.</p>}
               {customerSuggestions.map((suggestion) => {
                 const selected = selectedSuggestion === suggestion.id;
 
