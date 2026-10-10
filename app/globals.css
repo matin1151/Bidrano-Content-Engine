@@ -39,3 +39,5 @@ a{text-decoration:none;color:inherit}button,input,textarea,select{font:inherit}b
 input[dir="ltr"],textarea[dir="ltr"]{direction:ltr;text-align:left}
 @media(max-width:700px){input,select,textarea,.wide-input,.memory-search input{font-size:16px}}
 .table-row>span,.memory-row>div{min-width:0;overflow-wrap:anywhere}.memory-index{max-width:90px;overflow-wrap:anywhere}
+.main,.page-main{min-width:0}.stats{grid-template-columns:repeat(auto-fit,minmax(70px,1fr))}.stats-card small{display:block;overflow-wrap:anywhere}
+@media(max-width:700px){.stats-card{padding:12px 6px}.panel-head,.section-head{flex-wrap:wrap}}
