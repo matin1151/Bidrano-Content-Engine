@@ -2,6 +2,9 @@
 
 Bidrano Studio — Persian-first AI content production workspace.
 
+This version is a front-end prototype using mock data and browser localStorage.
+It does not yet use a backend API; it will be connected to an API in a later phase.
+
 ## Run locally
 
 ```bash
