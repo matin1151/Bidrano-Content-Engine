@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 
 type Customer = {
@@ -117,7 +117,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: "manual" | "s
   const requestedType = searchParams.get("type") || "";
   const mode = routeMode || searchParams.get("mode") || "manual";
 
-  const customers = useMemo(() => loadCustomers(), []);
+  const [customers, setCustomers] = useState(DEFAULT_CUSTOMERS);
 
   const initialCustomer =
     customers.find((customer) => customer.id === requestedCustomer) || customers[0];
@@ -128,6 +128,14 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: "manual" | "s
   const [instructions, setInstructions] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const loadedCustomers = loadCustomers();
+    setCustomers(loadedCustomers);
+    if (loadedCustomers.some((customer) => customer.id === requestedCustomer)) {
+      setCustomerId(requestedCustomer);
+    }
+  }, [requestedCustomer]);
 
   const customer = customers.find((item) => item.id === customerId) || initialCustomer;
   const customerSuggestions = SUGGESTIONS[customer?.id] || [];
