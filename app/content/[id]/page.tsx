@@ -13,21 +13,31 @@ type Order = {
 export default function ContentDetail({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState("");
   const [order, setOrder] = useState<Order | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     params.then(({ id }) => {
       setId(id);
-      const raw = localStorage.getItem("bidrano_order_" + id) || localStorage.getItem("bidrano_current_order");
+      setOrder(null);
+      const raw = localStorage.getItem("bidrano_order_" + id);
       if (raw) {
-        try { setOrder(JSON.parse(raw)); } catch {}
+        try {
+          const parsed = JSON.parse(raw) as Order;
+          if (parsed.id === id) setOrder(parsed);
+        } catch {}
       }
+      setLoaded(true);
     });
   }, [params]);
 
   const topic = order?.topic || "۵ اشتباه رایج در مسواک زدن";
   const customer = order?.customerName || "دکتر نادری";
   const type = order?.contentType || "Carousel";
-  const label = order?.status === "approved" ? "Approved" : order?.status === "review" ? "Needs Review" : "In Production";
+  const label = order?.status === "approved" ? "Approved" : order?.status === "review" ? "Needs Review" : order?.status === "revision" ? "Revision" : "In Production";
+  const statusClass = order?.status === "in-progress" ? "production" : order?.status || "production";
+
+  if (!loaded) return <main className="page-shell"><section className="page-main">Loading...</section></main>;
+  if (!order) return <main className="page-shell"><section className="page-main"><div className="empty-state"><h2>Content not found</h2></div></section></main>;
 
   return (
     <main className="page-shell">
@@ -40,7 +50,7 @@ export default function ContentDetail({ params }: { params: Promise<{ id: string
 
         <div className="detail-grid">
           <section className="profile-card">
-            <div className="card-title"><h2>Production Package</h2><span className="status review">{label}</span></div>
+            <div className="card-title"><h2>Production Package</h2><span className={`status ${statusClass}`}>{label}</span></div>
             <div className="detail-copy">
               <p><strong>Topic:</strong> {topic}</p>
               <p><strong>Customer:</strong> {customer}</p>
