@@ -2,17 +2,10 @@
 "use client";
 
 import Link from "next/link";
+import { CUSTOMERS as base } from "../../lib/mock-data";
 import type { ReactNode } from "react";
 import { ChevronLeft, CirclePlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
-
-type Customer = { id: string; name: string; field: string; status: string; initials: string };
-
-const base: Customer[] = [
-  { id: "dental-demo", name: "دکتر نادری", field: "دندانپزشکی", status: "Active", initials: "DN" },
-  { id: "aria", name: "استودیو آریا", field: "عکاسی و برندینگ", status: "Active", initials: "AR" },
-  { id: "savan", name: "سوان هانی", field: "عسل و محصولات طبیعی", status: "Active", initials: "SH" },
-];
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState(base);

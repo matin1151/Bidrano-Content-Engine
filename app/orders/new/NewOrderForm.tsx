@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CUSTOMERS as DEFAULT_CUSTOMERS, CONTENT_TYPES, PIPELINE, SUGGESTIONS, normalizeCustomerId, type Suggestion } from "../../../lib/mock-data";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
@@ -10,78 +11,6 @@ type Customer = {
   name: string;
   field: string;
 };
-
-type Suggestion = {
-  id: string;
-  title: string;
-  description: string;
-};
-
-const DEFAULT_CUSTOMERS: Customer[] = [
-  { id: "dental-demo", name: "Dr. Naderi", field: "Dental Clinic" },
-  { id: "aria", name: "Aria Studio", field: "Product Photography" },
-  { id: "savan", name: "Savan Natural Honey", field: "Natural Honey" },
-];
-
-const SUGGESTIONS: Record<string, Suggestion[]> = {
-  "dental-demo": [
-    {
-      id: "dental-demo-1",
-      title: "۳ نشانه که می‌گویند وقت چکاپ دندان رسیده",
-      description: "Educational carousel for dental patients.",
-    },
-    {
-      id: "dental-demo-2",
-      title: "۵ اشتباه رایج در مسواک زدن",
-      description: "Practical educational content for patients.",
-    },
-    {
-      id: "dental-demo-3",
-      title: "چرا با وجود مسواک زدن هنوز دندان‌ها آسیب می‌بینند؟",
-      description: "Awareness content explaining common causes.",
-    },
-  ],
-  aria: [
-    {
-      id: "aria-1",
-      title: "۵ اشتباه رایج در عکاسی محصول برای اینستاگرام",
-      description: "Educational content for product brands.",
-    },
-    {
-      id: "aria-2",
-      title: "قبل و بعد: نورپردازی چه چیزی را تغییر می‌دهد؟",
-      description: "Visual comparison content.",
-    },
-    {
-      id: "aria-3",
-      title: "چطور برای یک برند عکس حرفه‌ای برنامه‌ریزی کنیم؟",
-      description: "Practical content for business owners.",
-    },
-  ],
-  savan: [
-    {
-      id: "savan-1",
-      title: "چطور عسل طبیعی را از نمونه‌های تقلبی تشخیص دهیم؟",
-      description: "Educational content for honey buyers.",
-    },
-    {
-      id: "savan-2",
-      title: "عسل گون چه ویژگی‌هایی دارد؟",
-      description: "Product education and awareness.",
-    },
-    {
-      id: "savan-3",
-      title: "از کندو تا شیشه: مسیر تولید عسل سوان",
-      description: "Brand storytelling content.",
-    },
-  ],
-};
-
-const CONTENT_TYPES = ["Carousel", "Post", "Story", "Reel"];
-
-function normalizeCustomerId(id: string) {
-  return id === "naderi" ? "dental-demo" : id;
-}
 
 function loadCustomers(): Customer[] {
   if (typeof window === "undefined") return DEFAULT_CUSTOMERS;
@@ -117,13 +46,13 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: "manual" | "s
   const requestedType = searchParams.get("type") || "";
   const mode = routeMode || searchParams.get("mode") || "manual";
 
-  const [customers, setCustomers] = useState(DEFAULT_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>(DEFAULT_CUSTOMERS);
 
   const initialCustomer =
     customers.find((customer) => customer.id === requestedCustomer) || customers[0];
 
   const [customerId, setCustomerId] = useState(initialCustomer?.id || "");
-  const [contentType, setContentType] = useState(requestedType || "Carousel");
+  const [contentType, setContentType] = useState(requestedType || CONTENT_TYPES[0]);
   const [topic, setTopic] = useState(requestedTopic);
   const [instructions, setInstructions] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState("");
@@ -171,7 +100,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: "manual" | "s
       source: mode === "suggestion" ? "Today's Suggestion" : mode === "topic" ? "Start from a Topic" : "Manual",
       status: "in-progress",
       createdAt: new Date().toISOString(),
-      pipeline: ["Order Context", "Research", "Strategy & Copy", "Visual", "QA"],
+      pipeline: PIPELINE,
       currentStep: 0,
     };
 

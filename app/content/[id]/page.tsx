@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { CONTENT_ITEMS, STATUS_LABELS, STATUS_CLASSES, CONTENT_TYPES } from "../../../lib/mock-data";
 import { ChevronRight, History, RefreshCw, CheckCircle2, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -48,7 +49,7 @@ export default function ContentDetail({ params }: { params: Promise<{ id: string
   useEffect(() => {
     params.then(({ id }) => {
       setId(id);
-      setOrder(null);
+      setOrder(CONTENT_ITEMS.find((item) => item.id === id) || null);
       const raw = localStorage.getItem("bidrano_order_" + id);
       if (raw) {
         try {
@@ -60,11 +61,11 @@ export default function ContentDetail({ params }: { params: Promise<{ id: string
     });
   }, [params]);
 
-  const topic = order?.topic || "۵ اشتباه رایج در مسواک زدن";
-  const customer = order?.customerName || "دکتر نادری";
-  const type = order?.contentType || "Carousel";
-  const label = order?.status === "approved" ? "Approved" : order?.status === "review" ? "Needs Review" : order?.status === "revision" ? "Revision" : "In Production";
-  const statusClass = order?.status === "in-progress" ? "production" : order?.status || "production";
+  const topic = order?.topic || "";
+  const customer = order?.customerName || "";
+  const type = order?.contentType || CONTENT_TYPES[0];
+  const label = STATUS_LABELS[order?.status || "in-progress"] || STATUS_LABELS["in-progress"];
+  const statusClass = STATUS_CLASSES[order?.status || "in-progress"] || "production";
 
   if (!loaded) return <main className="page-shell"><section className="page-main">Loading...</section></main>;
   if (!order) return <main className="page-shell"><section className="page-main"><div className="empty-state"><h2>Content not found</h2></div></section></main>;

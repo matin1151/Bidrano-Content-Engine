@@ -1,21 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { CUSTOMERS } from "../../../lib/mock-data";
 import { notFound } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 
 type Customer = {name:string;field:string;audience:string;tone:string;initials:string;location:string};
-const data:Record<string,Customer> = {
- aria:{name:"استودیو آریا",field:"عکاسی و برندینگ",audience:"کسب‌وکارهای کوچک و برندهای شخصی",tone:"خلاق، حرفه‌ای، الهام‌بخش",initials:"AR",location:"تهران"},
- savan:{name:"سوان هانی",field:"عسل و محصولات طبیعی",audience:"خانواده‌ها و خریداران محصولات طبیعی",tone:"گرم، طبیعی، قابل‌اعتماد",initials:"SH",location:"ایران"}
-};
-
 export default function CustomerProfile({id}:{id:string}){
- const [c, setCustomer] = useState<Customer | null>(data[id] || null);
+ const [c, setCustomer] = useState<Customer | null>(CUSTOMERS.find((customer) => customer.id === id) || null);
  const [loaded, setLoaded] = useState(false);
  useEffect(() => {
-   let customer: Customer | null = data[id] || null;
+   let customer: Customer | null = CUSTOMERS.find((customer) => customer.id === id) || null;
    try {
      const saved: unknown = JSON.parse(localStorage.getItem("bidrano_customers") || "[]");
      if (!customer && Array.isArray(saved)) {

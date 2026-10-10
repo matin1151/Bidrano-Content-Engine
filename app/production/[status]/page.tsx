@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { PIPELINE, ROUTE_STATUS, STATUS_LABELS } from "../../../lib/mock-data";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -23,19 +24,6 @@ type Order = {
   createdAt?: string;
   pipeline?: string[];
   currentStep?: number;
-};
-
-const PIPELINE = [
-  "Order Context",
-  "Research",
-  "Strategy & Copy",
-  "Visual",
-  "QA",
-];
-
-const ROUTE_STATUS: Record<string, string> = {
-  "in-progress": "in-progress", review: "review", "needs-review": "review",
-  approved: "approved", completed: "approved", revision: "revision",
 };
 
 function readOrder(status: string, orderId?: string): Order | null {
@@ -148,20 +136,7 @@ export default function ProductionStatus({
     return () => window.clearTimeout(timer);
   }, [order]);
 
-  const pageTitle = useMemo(() => {
-    switch (status) {
-      case "review":
-      case "needs-review":
-        return "Needs Review";
-      case "completed":
-      case "approved":
-        return "Completed";
-      case "revision":
-        return "Revision";
-      default:
-        return "In Progress";
-    }
-  }, [status]);
+  const pageTitle = STATUS_LABELS[ROUTE_STATUS[status]] || STATUS_LABELS["in-progress"];
 
   if (!loaded) {
     return (

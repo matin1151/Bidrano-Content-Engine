@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { NADERI_PROFILE as defaults } from "../../../lib/mock-data";
 import { ChevronRight, Edit3, Globe, Instagram, MapPin, Phone, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const defaults={brand:"دکتر نادری",business:"دندانپزشکی",audience:"بانوان و خانواده‌ها، ۲۵ تا ۴۵ سال",tone:"حرفه‌ای، صمیمی، اطمینان‌بخش",phone:"021-00000000",address:"تهران، منطقه ۲",website:"drnaderi.example",instagram:"@drnaderi",rules:"ادعاهای درمانی بدون منبع منتشر نشود.\nاز لحن ترساننده استفاده نشود."};
 
 export default function CustomerProfile(){
  const [p,setP]=useState(defaults);

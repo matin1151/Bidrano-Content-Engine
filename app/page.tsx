@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CUSTOMERS, CONTENT_ITEMS, PRODUCTION_SUMMARY, STATUS_LABELS, STATUS_CLASSES } from "../lib/mock-data";
 import { Bell, CalendarDays, ChevronLeft, CirclePlus, FolderKanban, LayoutDashboard, Sparkles, Users, WandSparkles } from "lucide-react";
 
 const nav = [
@@ -9,11 +10,7 @@ const nav = [
   { label: "Content Memory", href: "/memory", icon: FolderKanban },
 ];
 
-const productionStatuses = [
-  { number: "08", label: "In Production", href: "/production/in-progress" },
-  { number: "05", label: "Waiting for Review", href: "/production/review" },
-  { number: "21", label: "Approved", href: "/production/approved" },
-];
+const productionStatuses = PRODUCTION_SUMMARY.map((item) => ({ number: item.count, label: STATUS_LABELS[item.status], href: "/production/" + item.status }));
 
 export default function Home() {
   return (
@@ -64,8 +61,8 @@ export default function Home() {
 
           <div className="panel">
             <div className="panel-head"><div><span className="section-kicker">CLIENTS</span><h3>Recent Customers</h3></div><Link href="/customers">View All<ChevronLeft size={15}/></Link></div>
-            {[["Dr. Naderi","Dental Clinic","DN"],["Aria Studio","Photography","AR"],["Savan Honey","Natural Products","SH"]].map(([name,field,initials])=>
-              <Link href="/customers" className="client-row" key={name}><span className="client-avatar">{initials}</span><span><strong>{name}</strong><small>{field}</small></span><i/></Link>
+            {CUSTOMERS.map(({id,name,field,initials})=>
+              <Link href={"/customers/" + id} className="client-row" key={id}><span className="client-avatar">{initials}</span><span><strong>{name}</strong><small>{field}</small></span><i/></Link>
             )}
           </div>
         </section>
@@ -74,9 +71,7 @@ export default function Home() {
           <div className="section-head"><div><span className="section-kicker">CONTENT MEMORY</span><h3>Recent Content</h3></div><Link href="/memory">Full History<ChevronLeft size={15}/></Link></div>
           <div className="content-table">
             <div className="table-row table-head"><span>Customer</span><span>Type</span><span>Topic</span><span>Status</span></div>
-            <Link href="/content/dental-brushing" className="table-row"><span>Dr. Naderi</span><span>Carousel</span><span>5 Common Toothbrushing Mistakes</span><b className="status approved">Approved</b></Link>
-            <Link href="/content/aria-behind-scenes" className="table-row"><span>Aria Studio</span><span>Stories</span><span>Behind the Scenes of Brand Photography</span><b className="status review">In Review</b></Link>
-            <Link href="/content/savan-natural-honey" className="table-row"><span>Savan Honey</span><span>Reels Pack</span><span>How to Identify Natural Honey</span><b className="status production">In Production</b></Link>
+            {CONTENT_ITEMS.map((item) => <Link key={item.id} href={"/content/" + item.id} className="table-row"><span>{item.customerName}</span><span>{item.contentType}</span><span>{item.topic}</span><b className={`status ${STATUS_CLASSES[item.status]}`}>{STATUS_LABELS[item.status]}</b></Link>)}
           </div>
         </section>
       </section>
