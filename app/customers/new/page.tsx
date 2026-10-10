@@ -132,6 +132,7 @@ export default function NewCustomer() {
           <div className="fields">
             <Field
               label="Phone"
+              dir="ltr"
               placeholder="شماره تماس"
               value={form.phone}
               onChange={(value) => update("phone", value)}
@@ -146,6 +147,7 @@ export default function NewCustomer() {
 
             <Field
               label="Website"
+              dir="ltr"
               placeholder="https://"
               value={form.website}
               onChange={(value) => update("website", value)}
@@ -153,6 +155,7 @@ export default function NewCustomer() {
 
             <Field
               label="Instagram"
+              dir="ltr"
               placeholder="@username"
               value={form.instagram}
               onChange={(value) => update("instagram", value)}
@@ -198,8 +201,10 @@ function Field({
   placeholder,
   value,
   onChange,
+  dir,
 }: {
   label: string;
+  dir?: "ltr" | "rtl";
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
@@ -209,6 +214,7 @@ function Field({
       <span>{label}</span>
 
       <input
+        dir={dir}
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
