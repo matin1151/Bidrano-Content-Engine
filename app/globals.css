@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap");
 
 :root{
   --bg:#f6f8fc;--surface:#ffffff;--surface2:#eef3fb;--surface3:#e7edf7;
@@ -10,7 +9,7 @@
 }
 *{box-sizing:border-box}
 html{background:var(--bg)}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:Vazirmatn,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-vazirmatn),Tahoma,Arial,sans-serif}
 a{text-decoration:none;color:inherit}button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.65}
 :focus-visible{outline:3px solid rgba(37,99,235,.22);outline-offset:2px}
 
