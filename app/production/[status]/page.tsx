@@ -33,19 +33,37 @@ const PIPELINE = [
   "QA",
 ];
 
-function readOrder(orderId?: string): Order | null {
+const ROUTE_STATUS: Record<string, string> = {
+  "in-progress": "in-progress", review: "review", "needs-review": "review",
+  approved: "approved", completed: "approved", revision: "revision",
+};
+
+function readOrder(status: string, orderId?: string): Order | null {
   if (typeof window === "undefined") return null;
 
   try {
     if (orderId) {
       const direct = localStorage.getItem(`bidrano_order_${orderId}`);
-      if (direct) return JSON.parse(direct) as Order;
+      if (direct) {
+        const parsed = JSON.parse(direct) as Order;
+        return parsed.id === orderId && parsed.status === status ? parsed : null;
+      }
     }
 
     const current = localStorage.getItem("bidrano_current_order");
     if (current) {
       const parsed = JSON.parse(current) as Order;
-      if (!orderId || parsed.id === orderId) return parsed;
+      if ((!orderId || parsed.id === orderId) && parsed.status === status) return parsed;
+    }
+    if (!orderId) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key?.startsWith("bidrano_order_")) continue;
+        try {
+          const candidate = JSON.parse(localStorage.getItem(key) || "null") as Order | null;
+          if (candidate?.status === status) return candidate;
+        } catch { continue; }
+      }
     }
   } catch {
     return null;
@@ -79,11 +97,10 @@ export default function ProductionStatus({
 
         const query = new URLSearchParams(window.location.search);
         const orderId = query.get("order") || undefined;
-        const existing = readOrder(orderId);
+        const existing = ROUTE_STATUS[resolved.status]
+          ? readOrder(ROUTE_STATUS[resolved.status], orderId) : null;
 
-        if (existing) {
-          setOrder(existing);
-        }
+        setOrder(existing);
 
         setLoaded(true);
       })
@@ -123,6 +140,9 @@ export default function ProductionStatus({
 
       saveOrder(updated);
       setOrder(updated);
+      if (nextStatus === "review") {
+        window.location.href = `/production/review?order=${encodeURIComponent(updated.id)}`;
+      }
     }, 1400);
 
     return () => window.clearTimeout(timer);
@@ -196,7 +216,7 @@ export default function ProductionStatus({
               {isReview ? "READY FOR REVIEW" : "PRODUCTION"}
             </span>
 
-            <h1>{isReview ? "Needs Review" : "In Progress"}</h1>
+            <h1>{pageTitle}</h1>
 
             <p>
               {isReview
@@ -220,8 +240,8 @@ export default function ProductionStatus({
                 <h2>{order.topic || "Untitled Content"}</h2>
               </div>
 
-              <span className={`status-pill ${isReview ? "review" : ""}`}>
-                {isReview ? "Needs Review" : "In Progress"}
+              <span className={`status-pill ${order.status || ""}`}>
+                {pageTitle}
               </span>
             </div>
 
@@ -262,7 +282,7 @@ export default function ProductionStatus({
                 <h2>Production Stages</h2>
               </div>
 
-              {!isReview && (
+              {order.status === "in-progress" && (
                 <div className="pipeline-running">
                   <Loader2 className="spin" size={17} />
                   Running
@@ -280,7 +300,7 @@ export default function ProductionStatus({
             <div className="pipeline-list">
               {PIPELINE.map((step, index) => {
                 const done = index < currentStep;
-                const active = index === currentStep && !isReview;
+                const active = index === currentStep && order.status === "in-progress";
 
                 return (
                   <div className="pipeline-step" key={step}>
