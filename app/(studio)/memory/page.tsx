@@ -2,7 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { MEMORY_ITEMS as items, STATUS_LABELS } from "../../../lib/mock-data";
+import { STATUS_LABELS } from "../../../lib/mock-data";
+import { contentData } from "../../../lib/data";
 import { Search, ChevronLeft } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -12,19 +13,12 @@ export default function Memory() {
   const [query, setQuery] = useState("");
   const [approvedItems, setApprovedItems] = useState<MemoryItem[]>([]);
   useEffect(() => {
-    function loadMemory() {
-      try {
-        const saved: unknown = JSON.parse(localStorage.getItem("bidrano_content_memory") || "[]");
-        if (!Array.isArray(saved)) { setApprovedItems([]); return; }
-        setApprovedItems(saved.filter((item) => item?.status === "approved" && typeof item.id === "string" && typeof item.topic === "string" && typeof item.customerName === "string")
-          .map((item) => ({ id: item.id, title: item.topic, customer: item.customerName })));
-      } catch { setApprovedItems([]); }
-    }
+    function loadMemory() { setApprovedItems(contentData.memory()); }
     loadMemory();
     window.addEventListener("storage", loadMemory);
     return () => window.removeEventListener("storage", loadMemory);
   }, []);
-  const filtered = useMemo(() => [...items.filter((item) => !approvedItems.some((saved) => saved.id === item.id)), ...approvedItems].filter((x) => (x.title + " " + x.customer).toLowerCase().includes(query.toLowerCase())), [query, approvedItems]);
+  const filtered = useMemo(() => approvedItems.filter((x) => (x.title + " " + x.customer).toLowerCase().includes(query.toLowerCase())), [query, approvedItems]);
 
   return <>
     

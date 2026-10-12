@@ -3,23 +3,16 @@
 
 import Link from "next/link";
 import { NADERI_PROFILE as initial } from "../../../../../lib/mock-data";
+import { customerData } from "../../../../../lib/data";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
 
 export default function EditCustomerProfile() {
   const [form, setForm] = useState(initial);
-  useEffect(() => {
-    try {
-      const saved: unknown = JSON.parse(localStorage.getItem("bidrano_naderi_profile") || "null");
-      if (saved && typeof saved === "object" && !Array.isArray(saved)) {
-        const values = saved as Record<string, unknown>;
-        setForm(Object.fromEntries(Object.entries(initial).map(([key, fallback]) => [key, typeof values[key] === "string" ? values[key] : fallback])) as typeof initial);
-      }
-    } catch { setForm(initial); }
-  }, []);
+  useEffect(() => { setForm(customerData.brandProfile()); }, []);
   const update = (key:keyof typeof initial, value:string) => setForm({ ...form, [key]:value });
-  function save() { localStorage.setItem("bidrano_naderi_profile", JSON.stringify(form)); window.location.href="/customers/dental-demo"; }
+  function save() { customerData.saveBrandProfile(form); window.location.href="/customers/dental-demo"; }
 
   return <section className="profile-page"><header className="profile-header"><div><Link href="/customers/dental-demo" className="back-link"><ChevronRight size={15} /> Brand Profile</Link><div className="profile-title"><span className="large-avatar">DN</span><div><span className="eyebrow">EDIT PROFILE</span><h1>Edit Brand Profile</h1><p>Update the permanent customer context used by the content pipeline.</p></div></div></div></header>
     <div className="new-customer-form">

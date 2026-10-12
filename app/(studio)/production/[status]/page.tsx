@@ -11,46 +11,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-import type { Order, OrderStatus } from "../../../../lib/models";
-
-function readOrder(status: OrderStatus, orderId?: string): Order | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    if (orderId) {
-      const direct = localStorage.getItem(`bidrano_order_${orderId}`);
-      if (direct) {
-        const parsed = JSON.parse(direct) as Order;
-        return parsed.id === orderId && parsed.status === status ? parsed : null;
-      }
-    }
-
-    const current = localStorage.getItem("bidrano_current_order");
-    if (current) {
-      const parsed = JSON.parse(current) as Order;
-      if ((!orderId || parsed.id === orderId) && parsed.status === status) return parsed;
-    }
-    if (!orderId) {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (!key?.startsWith("bidrano_order_")) continue;
-        try {
-          const candidate = JSON.parse(localStorage.getItem(key) || "null") as Order | null;
-          if (candidate?.status === status) return candidate;
-        } catch { continue; }
-      }
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function saveOrder(order: Order) {
-  localStorage.setItem(`bidrano_order_${order.id}`, JSON.stringify(order));
-  localStorage.setItem("bidrano_current_order", JSON.stringify(order));
-}
+import type { Order } from "../../../../lib/models";
+import { orderData } from "../../../../lib/data";
 
 export default function ProductionStatus({
   params,
@@ -73,7 +35,7 @@ export default function ProductionStatus({
         const query = new URLSearchParams(window.location.search);
         const orderId = query.get("order") || undefined;
         const orderStatus = ROUTE_STATUS[resolved.status];
-        const existing = orderStatus ? readOrder(orderStatus, orderId) : null;
+        const existing = orderStatus ? orderData.findByStatus(orderStatus, orderId) : null;
 
         setOrder(existing);
 
@@ -113,7 +75,7 @@ export default function ProductionStatus({
         pipeline: PIPELINE,
       };
 
-      saveOrder(updated);
+      orderData.save(updated);
       setOrder(updated);
       if (nextStatus === "review") {
         window.location.href = `/production/review?order=${encodeURIComponent(updated.id)}`;

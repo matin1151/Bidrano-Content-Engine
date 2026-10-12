@@ -2,11 +2,12 @@
 "use client";
 
 import Link from "next/link";
-import { CONTENT_ITEMS, STATUS_LABELS, STATUS_CLASSES, CONTENT_TYPES } from "../../../../lib/mock-data";
+import { STATUS_LABELS, STATUS_CLASSES, CONTENT_TYPES } from "../../../../lib/mock-data";
 import { ChevronRight, History, RefreshCw, CheckCircle2, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { ContentItem, ReviewDecision } from "../../../../lib/models";
+import { contentData, orderData } from "../../../../lib/data";
 
 export default function ContentDetail({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState("");
@@ -22,20 +23,8 @@ export default function ContentDetail({ params }: { params: Promise<{ id: string
     }
     const updated = { ...order, status, ...(status === "revision" ? { revisionNote: revisionNote.trim() } : {}) };
     try {
-      const rawMemory = localStorage.getItem("bidrano_content_memory");
-      let memory: ContentItem[] = [];
-      try {
-        const parsed = JSON.parse(rawMemory || "[]");
-        if (Array.isArray(parsed)) memory = parsed.filter((item): item is ContentItem => Boolean(item?.id));
-      } catch {}
-      if (status === "approved") {
-        localStorage.setItem("bidrano_content_memory", JSON.stringify([...memory.filter((item) => item.id !== updated.id), updated]));
-      }
-      localStorage.setItem("bidrano_order_" + updated.id, JSON.stringify(updated));
-      const current = localStorage.getItem("bidrano_current_order");
-      let currentId: string | undefined;
-      try { currentId = JSON.parse(current || "null")?.id; } catch {}
-      if (currentId === updated.id) localStorage.setItem("bidrano_current_order", JSON.stringify(updated));
+      if (status === "approved") contentData.approve(updated);
+      else orderData.update(updated);
       setOrder(updated);
     } catch {
       alert("Could not save the review. Please try again.");
@@ -45,14 +34,7 @@ export default function ContentDetail({ params }: { params: Promise<{ id: string
   useEffect(() => {
     params.then(({ id }) => {
       setId(id);
-      setOrder(CONTENT_ITEMS.find((item) => item.id === id) || null);
-      const raw = localStorage.getItem("bidrano_order_" + id);
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw) as ContentItem;
-          if (parsed.id === id) setOrder(parsed);
-        } catch {}
-      }
+      setOrder(contentData.get(id));
       setLoaded(true);
     });
   }, [params]);

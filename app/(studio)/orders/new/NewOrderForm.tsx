@@ -7,33 +7,8 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 
 import { isContentType } from "../../../../lib/models";
+import { customerData, orderData } from "../../../../lib/data";
 import type { ContentType, CustomerSummary, Order, OrderMode, Suggestion } from "../../../../lib/models";
-
-function loadCustomers(): CustomerSummary[] {
-  if (typeof window === "undefined") return DEFAULT_CUSTOMERS;
-
-  try {
-    const saved = JSON.parse(localStorage.getItem("bidrano_customers") || "[]");
-
-    if (!Array.isArray(saved)) return DEFAULT_CUSTOMERS;
-
-    const custom = saved
-      .filter(
-        (item): item is CustomerSummary =>
-          Boolean(item?.id && item?.name && item?.field)
-      )
-      .map((item) => ({
-        id: normalizeCustomerId(String(item.id)),
-        name: String(item.name),
-        field: String(item.field),
-      }))
-      .filter((item) => !DEFAULT_CUSTOMERS.some((base) => base.id === item.id));
-
-    return [...DEFAULT_CUSTOMERS, ...custom];
-  } catch {
-    return DEFAULT_CUSTOMERS;
-  }
-}
 
 export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) {
   const searchParams = useSearchParams();
@@ -56,7 +31,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const loadedCustomers = loadCustomers();
+    const loadedCustomers = customerData.summaries();
     setCustomers(loadedCustomers);
     if (loadedCustomers.some((customer) => customer.id === requestedCustomer)) {
       setCustomerId(requestedCustomer);
@@ -101,8 +76,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
       currentStep: 0,
     };
 
-    localStorage.setItem(`bidrano_order_${order.id}`, JSON.stringify(order));
-    localStorage.setItem("bidrano_current_order", JSON.stringify(order));
+    orderData.save(order);
 
     window.location.href = `/production/in-progress?order=${encodeURIComponent(order.id)}`;
   }

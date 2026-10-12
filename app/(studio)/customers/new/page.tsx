@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 import type { Customer, CustomerForm } from "../../../../lib/models";
+import { customerData } from "../../../../lib/data";
 
 export default function NewCustomer() {
   const [form, setForm] = useState<CustomerForm>({
@@ -39,16 +40,7 @@ export default function NewCustomer() {
       initials: form.name.trim().split(/[\s\u200c]+/u).slice(0, 2).map((word) => Array.from(word)[0]).join("").toUpperCase(),
     };
 
-    let old: unknown[] = [];
-    try {
-      const saved: unknown = JSON.parse(localStorage.getItem("bidrano_customers") || "[]");
-      if (Array.isArray(saved)) old = saved;
-    } catch {}
-
-    localStorage.setItem(
-      "bidrano_customers",
-      JSON.stringify([...old, customer])
-    );
+    customerData.create(customer);
 
     window.location.href = "/customers";
   }

@@ -3,14 +3,14 @@
 
 import Link from "next/link";
 import { CUSTOMERS as base } from "../../../lib/mock-data";
+import { customerData } from "../../../lib/data";
 import { ChevronLeft, CirclePlus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState(base);
   useEffect(() => {
-    const raw = localStorage.getItem("bidrano_customers");
-    if (raw) { try { setCustomers([...base, ...JSON.parse(raw)]); } catch {} }
+    setCustomers(customerData.list());
   }, []);
 
   return <section className="page-main"><div className="page-header"><div><span className="eyebrow">CUSTOMERS</span><h1>Customers</h1><p>Manage each customer Brand Profile, assets and Content Memory.</p></div><Link href="/" className="back-link">Dashboard <ChevronLeft size={15} /></Link></div>
@@ -21,4 +21,3 @@ export default function CustomersPage() {
     </Link>)}</div>
   </section>;
 }
-

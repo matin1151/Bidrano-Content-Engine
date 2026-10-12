@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CUSTOMERS } from "../../../../lib/mock-data";
+import { customerData } from "../../../../lib/data";
 import { notFound } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
@@ -11,21 +12,7 @@ export default function CustomerProfile({id}:{id:string}){
  const [c, setCustomer] = useState<CustomerProfileData | null>(CUSTOMERS.find((customer) => customer.id === id) || null);
  const [loaded, setLoaded] = useState(false);
  useEffect(() => {
-   let customer: CustomerProfileData | null = CUSTOMERS.find((customer) => customer.id === id) || null;
-   try {
-     const saved: unknown = JSON.parse(localStorage.getItem("bidrano_customers") || "[]");
-     if (!customer && Array.isArray(saved)) {
-       const match = saved.find((item) => item?.id === id && typeof item.name === "string" && typeof item.field === "string");
-       if (match) customer = {
-         name: match.name, field: match.field,
-         audience: typeof match.audience === "string" ? match.audience : "",
-         tone: typeof match.tone === "string" ? match.tone : "",
-         initials: typeof match.initials === "string" ? match.initials : "",
-         location: typeof match.address === "string" ? match.address : "",
-       };
-     }
-   } catch {}
-   setCustomer(customer);
+   setCustomer(customerData.profile(id));
    setLoaded(true);
  }, [id]);
  if (!loaded && !c) return <><section className="page-main">Loading...</section></>;
