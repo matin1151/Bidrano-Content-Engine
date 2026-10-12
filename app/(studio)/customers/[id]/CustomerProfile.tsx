@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CUSTOMERS } from "../../../../lib/mock-data";
+import { requestMessage } from "../../../../lib/api-client";
 import { customerData } from "../../../../lib/data";
 import { notFound } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -9,13 +9,19 @@ import { ChevronRight } from "lucide-react";
 
 import type { CustomerProfile as CustomerProfileData } from "../../../../lib/models";
 export default function CustomerProfile({id}:{id:string}){
- const [c, setCustomer] = useState<CustomerProfileData | null>(CUSTOMERS.find((customer) => customer.id === id) || null);
+ const [c, setCustomer] = useState<CustomerProfileData | null>(null);
  const [loaded, setLoaded] = useState(false);
+ const [error, setError] = useState("");
  useEffect(() => {
-   setCustomer(customerData.profile(id));
-   setLoaded(true);
+   const controller = new AbortController();
+   setLoaded(false); setError(""); setCustomer(null);
+   customerData.profile(id, controller.signal).then(setCustomer).catch((error) => {
+     if (!controller.signal.aborted) setError(requestMessage(error));
+   }).finally(() => { if (!controller.signal.aborted) setLoaded(true); });
+   return () => controller.abort();
  }, [id]);
  if (!loaded && !c) return <><section className="page-main">Loading...</section></>;
+ if (error) return <section className="page-main"><p role="alert">{error}</p></section>;
  if (!c) notFound();
  return <section className="profile-page"><div className="profile-header"><div><Link href="/customers" className="back-link"><ChevronRight size={15}/> Customers</Link><div className="profile-title"><span className="large-avatar">{c.initials}</span><div><span className="eyebrow">BRAND PROFILE</span><h1>{c.name}</h1><p>{c.field} • {c.location}</p></div></div></div><div className="page-actions"><Link href={"/orders/new?customer="+id} className="button primary">Create Content</Link></div></div>
  <div className="profile-grid"><section className="profile-card wide"><div className="card-title"><h2>Brand Identity</h2><span>Saved</span></div><div className="fields"><Field l="Brand Name" v={c.name}/><Field l="Business" v={c.field}/><Field l="Main Audience" v={c.audience}/><Field l="Tone" v={c.tone}/></div></section><section className="profile-card wide"><div className="card-title"><h2>Content Context</h2><span>Active</span></div><div className="memory-box"><strong>Brand context is available to production.</strong><p>Audience, tone and customer-specific direction will be passed into new orders.</p></div></section></div></section>;

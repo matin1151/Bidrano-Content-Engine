@@ -2,8 +2,17 @@
 
 Bidrano Studio — Persian-first AI content production workspace.
 
-This version is a front-end prototype using mock data and browser localStorage.
-It does not yet use a backend API; it will be connected to an API in a later phase.
+This version is a prototype. Customers use a local Next.js API; orders and content
+still use mock data and browser localStorage.
+
+Customer data is stored in `.bidrano-data/customers.json` and persists across
+local server restarts. Keep this directory when updating the application.
+This storage supports one local server process, not serverless or multi-instance
+deployment. Authentication and a production database are still pending.
+Existing browser customers are imported with their original IDs; existing server
+records take precedence. The original browser data is retained.
+
+The API contract is in [docs/api-contract.md](docs/api-contract.md).
 
 ## Run locally
 

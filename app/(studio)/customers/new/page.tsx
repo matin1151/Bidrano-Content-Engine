@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { ApiError, requestMessage } from "../../../../lib/api-client";
 
-import type { Customer, CustomerForm } from "../../../../lib/models";
+import type { CustomerForm } from "../../../../lib/models";
 import { customerData } from "../../../../lib/data";
 
 export default function NewCustomer() {
@@ -20,29 +21,35 @@ export default function NewCustomer() {
     rules: "",
   });
 
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const submitting = useRef(false);
+
   const update = (key: keyof CustomerForm, value: string) => {
+    setFieldErrors((current) => ({ ...current, [key]: "" }));
     setForm((current) => ({
       ...current,
       [key]: value,
     }));
   };
 
-  function save() {
+  async function save() {
+    if (submitting.current) return;
     if (!form.name.trim() || !form.field.trim()) {
       alert("Brand Name and Business / Specialty are required.");
       return;
     }
 
-    const customer: Customer = {
-      ...form,
-      id: "customer-" + Date.now(),
-      status: "Active",
-      initials: form.name.trim().split(/[\s\u200c]+/u).slice(0, 2).map((word) => Array.from(word)[0]).join("").toUpperCase(),
-    };
-
-    customerData.create(customer);
-
-    window.location.href = "/customers";
+    submitting.current = true; setSaving(true); setError(""); setFieldErrors({});
+    try {
+      await customerData.create(form);
+      window.location.href = "/customers";
+    } catch (error) {
+      setError(requestMessage(error));
+      if (error instanceof ApiError) setFieldErrors(error.fields || {});
+    }
+    finally { submitting.current = false; setSaving(false); }
   }
 
   return (
@@ -81,6 +88,7 @@ export default function NewCustomer() {
               label="Brand Name"
               placeholder="مثلاً: دکتر نادری"
               value={form.name}
+              error={fieldErrors.name}
               onChange={(value) => update("name", value)}
             />
 
@@ -88,6 +96,7 @@ export default function NewCustomer() {
               label="Business / Specialty"
               placeholder="مثلاً: Dental Clinic"
               value={form.field}
+              error={fieldErrors.field}
               onChange={(value) => update("field", value)}
             />
 
@@ -95,6 +104,7 @@ export default function NewCustomer() {
               label="Main Audience"
               placeholder="مخاطب اصلی برند"
               value={form.audience}
+              error={fieldErrors.audience}
               onChange={(value) => update("audience", value)}
             />
 
@@ -102,6 +112,7 @@ export default function NewCustomer() {
               label="Tone of Voice"
               placeholder="مثلاً: حرفه‌ای، صمیمی، اطمینان‌بخش"
               value={form.tone}
+              error={fieldErrors.tone}
               onChange={(value) => update("tone", value)}
             />
           </div>
@@ -119,6 +130,7 @@ export default function NewCustomer() {
               dir="ltr"
               placeholder="شماره تماس"
               value={form.phone}
+              error={fieldErrors.phone}
               onChange={(value) => update("phone", value)}
             />
 
@@ -126,6 +138,7 @@ export default function NewCustomer() {
               label="Address"
               placeholder="آدرس"
               value={form.address}
+              error={fieldErrors.address}
               onChange={(value) => update("address", value)}
             />
 
@@ -134,6 +147,7 @@ export default function NewCustomer() {
               dir="ltr"
               placeholder="https://"
               value={form.website}
+              error={fieldErrors.website}
               onChange={(value) => update("website", value)}
             />
 
@@ -142,6 +156,7 @@ export default function NewCustomer() {
               dir="ltr"
               placeholder="@username"
               value={form.instagram}
+              error={fieldErrors.instagram}
               onChange={(value) => update("instagram", value)}
             />
           </div>
@@ -156,11 +171,14 @@ export default function NewCustomer() {
           <textarea
             className="wide-input"
             value={form.rules}
+            aria-invalid={Boolean(fieldErrors.rules)}
             onChange={(event) => update("rules", event.target.value)}
             placeholder="موضوعات ممنوع، ادعاهای حساس، قوانین لحن، CTA یا دستورهای خاص مشتری..."
           />
+          {fieldErrors.rules && <small role="alert">{fieldErrors.rules}</small>}
         </section>
 
+        {error && <p role="alert">{error}</p>}
         <div className="form-actions">
           <Link href="/customers" className="button secondary">
             Cancel
@@ -169,9 +187,10 @@ export default function NewCustomer() {
           <button
             type="button"
             onClick={save}
+            disabled={saving}
             className="button primary"
           >
-            Save Customer
+            {saving ? "Saving..." : "Save Customer"}
             <ArrowLeft size={16} />
           </button>
         </div>
@@ -186,9 +205,11 @@ function Field({
   value,
   onChange,
   dir,
+  error,
 }: {
   label: string;
   dir?: "ltr" | "rtl";
+  error?: string;
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
@@ -199,10 +220,12 @@ function Field({
 
       <input
         dir={dir}
+        aria-invalid={Boolean(error)}
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
       />
+      {error && <small role="alert">{error}</small>}
     </label>
   );
 }

@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { CUSTOMERS as DEFAULT_CUSTOMERS, CONTENT_TYPES, PIPELINE, SUGGESTIONS, normalizeCustomerId } from "../../../../lib/mock-data";
+import { CONTENT_TYPES, PIPELINE, SUGGESTIONS, normalizeCustomerId } from "../../../../lib/mock-data";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 
 import { isContentType } from "../../../../lib/models";
+import { requestMessage } from "../../../../lib/api-client";
 import { customerData, orderData } from "../../../../lib/data";
 import type { ContentType, CustomerSummary, Order, OrderMode, Suggestion } from "../../../../lib/models";
 
@@ -18,7 +19,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
   const requestedType = searchParams.get("type") || "";
   const mode = routeMode || searchParams.get("mode") || "manual";
 
-  const [customers, setCustomers] = useState<CustomerSummary[]>(DEFAULT_CUSTOMERS);
+  const [customers, setCustomers] = useState<CustomerSummary[]>([]);
 
   const initialCustomer =
     customers.find((customer) => customer.id === requestedCustomer) || customers[0];
@@ -29,13 +30,20 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
   const [instructions, setInstructions] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [customerError, setCustomerError] = useState("");
 
   useEffect(() => {
-    const loadedCustomers = customerData.summaries();
-    setCustomers(loadedCustomers);
-    if (loadedCustomers.some((customer) => customer.id === requestedCustomer)) {
-      setCustomerId(requestedCustomer);
-    }
+    const controller = new AbortController();
+    setLoadingCustomers(true); setCustomerError("");
+    customerData.summaries(controller.signal).then((loadedCustomers) => {
+      setCustomers(loadedCustomers);
+      setCustomerId(loadedCustomers.some((customer) => customer.id === requestedCustomer) ?
+        requestedCustomer : loadedCustomers[0]?.id || "");
+    }).catch((error) => {
+      if (!controller.signal.aborted) setCustomerError(requestMessage(error));
+    }).finally(() => { if (!controller.signal.aborted) setLoadingCustomers(false); });
+    return () => controller.abort();
   }, [requestedCustomer]);
 
   const customer = customers.find((item) => item.id === customerId) || initialCustomer;
@@ -100,6 +108,8 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
           </div>
         </div>
 
+        {loadingCustomers && <p role="status">Loading customers...</p>}
+        {customerError && <p role="alert">{customerError}</p>}
         <div className="new-order-layout">
           <section className="order-form-card">
             <div className="section-heading">
@@ -217,7 +227,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
             type="button"
             className="button primary"
             onClick={startProduction}
-            disabled={saving}
+            disabled={saving || loadingCustomers || Boolean(customerError)}
           >
             {saving ? "Starting..." : "Start Production"}
             <ArrowLeft size={16} />

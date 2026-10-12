@@ -1,4 +1,6 @@
-import { CONTENT_ITEMS, CUSTOMERS, MEMORY_ITEMS, NADERI_PROFILE, normalizeCustomerId } from "./mock-data";
+import { CONTENT_ITEMS, MEMORY_ITEMS, NADERI_PROFILE } from "./mock-data";
+import { ApiError, apiRequest } from "./api-client";
+import type { CustomerForm } from "./models";
 import type { BrandProfile, ContentItem, Customer, CustomerProfile, CustomerSummary, MemoryItem, Order, OrderStatus } from "./models";
 
 function readJson(key: string): unknown {
@@ -9,45 +11,76 @@ function readJson(key: string): unknown {
   }
 }
 
-function savedCustomers(): Customer[] {
-  const saved = readJson("bidrano_customers");
-  return Array.isArray(saved) ? saved.filter((item): item is Customer =>
-    Boolean(item && typeof item.id === "string" && typeof item.name === "string" && typeof item.field === "string")
-  ) : [];
+let legacyImport: Promise<void> | undefined;
+function importLegacyCustomers(): Promise<void> {
+  if (legacyImport) return legacyImport;
+  legacyImport = (async () => {
+    const saved = readJson("bidrano_customers");
+    const customers = Array.isArray(saved) ? saved.filter((item) =>
+      item && typeof item.id === "string" && /^customer-\d+$/.test(item.id) &&
+      typeof item.name === "string" && typeof item.field === "string"
+    ) : [];
+    const savedProfile = readJson("bidrano_naderi_profile");
+    let profile: CustomerForm | undefined;
+    if (savedProfile && typeof savedProfile === "object" && !Array.isArray(savedProfile)) {
+      const values = savedProfile as Record<string, unknown>;
+      const merged = Object.fromEntries(Object.entries(NADERI_PROFILE).map(([key, fallback]) =>
+        [key, typeof values[key] === "string" ? values[key] : fallback]
+      )) as BrandProfile;
+      const { brand, business, ...fields } = merged;
+      profile = { ...fields, name: brand, field: business };
+    }
+    if (customers.length || profile) {
+      await apiRequest("/api/v1/customers/import", {
+        method: "POST", body: JSON.stringify({ customers, profile }),
+      });
+    }
+  })().catch((error) => { legacyImport = undefined; throw error; });
+  return legacyImport;
 }
 
 export const customerData = {
-  list(): Customer[] {
-    return [...CUSTOMERS, ...savedCustomers()];
+  async list(signal?: AbortSignal): Promise<Customer[]> {
+    await importLegacyCustomers();
+    const customers: Customer[] = [];
+    let cursor: string | null | undefined;
+    do {
+      const response = await apiRequest<Customer[]>("/api/v1/customers?limit=100" +
+        (cursor ? "&cursor=" + encodeURIComponent(cursor) : ""), { signal });
+      customers.push(...response.data);
+      cursor = response.meta?.nextCursor;
+    } while (cursor);
+    return customers;
   },
-  summaries(): CustomerSummary[] {
-    const custom = savedCustomers().map(({ id, name, field }) => ({
-      id: normalizeCustomerId(id), name, field,
-    })).filter((item) => !CUSTOMERS.some((base) => base.id === item.id));
-    return [...CUSTOMERS, ...custom];
+  async summaries(signal?: AbortSignal): Promise<CustomerSummary[]> {
+    return (await this.list(signal)).map(({ id, name, field }) => ({ id, name, field }));
   },
-  profile(id: string): CustomerProfile | null {
-    const customer = this.list().find((item) => item.id === id);
-    if (!customer) return null;
-    return {
-      name: customer.name, field: customer.field,
-      audience: customer.audience || "", tone: customer.tone || "",
-      initials: customer.initials || "", location: customer.location || customer.address || "",
-    };
+  async profile(id: string, signal?: AbortSignal): Promise<CustomerProfile | null> {
+    await importLegacyCustomers();
+    try {
+      const { data: customer } = await apiRequest<Customer>("/api/v1/customers/" + encodeURIComponent(id), { signal });
+      return { name: customer.name, field: customer.field, audience: customer.audience,
+        tone: customer.tone, initials: customer.initials, location: customer.location || customer.address || "" };
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) return null;
+      throw error;
+    }
   },
-  create(customer: Customer): void {
-    localStorage.setItem("bidrano_customers", JSON.stringify([...savedCustomers(), customer]));
+  async create(form: CustomerForm): Promise<Customer> {
+    return (await apiRequest<Customer>("/api/v1/customers", { method: "POST", body: JSON.stringify(form) })).data;
   },
-  brandProfile(): BrandProfile {
-    const saved = readJson("bidrano_naderi_profile");
-    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return NADERI_PROFILE;
-    const values = saved as Record<string, unknown>;
-    return Object.fromEntries(Object.entries(NADERI_PROFILE).map(([key, fallback]) =>
-      [key, typeof values[key] === "string" ? values[key] : fallback]
-    )) as BrandProfile;
+  async brandProfile(signal?: AbortSignal): Promise<BrandProfile> {
+    await importLegacyCustomers();
+    const { data: customer } = await apiRequest<Customer>("/api/v1/customers/dental-demo", { signal });
+    return { brand: customer.name, business: customer.field, audience: customer.audience,
+      tone: customer.tone, phone: customer.phone || "", address: customer.address || "",
+      website: customer.website || "", instagram: customer.instagram || "", rules: customer.rules || "" };
   },
-  saveBrandProfile(profile: BrandProfile): void {
-    localStorage.setItem("bidrano_naderi_profile", JSON.stringify(profile));
+  async saveBrandProfile(profile: BrandProfile): Promise<void> {
+    const { brand, business, ...fields } = profile;
+    await apiRequest<Customer>("/api/v1/customers/dental-demo", {
+      method: "PATCH", body: JSON.stringify({ ...fields, name: brand, field: business }),
+    });
   },
 };
 

@@ -10,6 +10,9 @@ out/
 build/
 dist/
 
+# Local prototype API data
+.bidrano-data/
+
 # Local environment
 .env
 .env.local
