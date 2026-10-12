@@ -6,19 +6,15 @@ import { CONTENT_ITEMS, STATUS_LABELS, STATUS_CLASSES, CONTENT_TYPES } from "../
 import { ChevronRight, History, RefreshCw, CheckCircle2, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 
-type Order = {
-  id: string; customerName: string; contentType: string; topic: string;
-  instructions?: string; status: string; createdAt: string; currentStep: number; pipeline: string[];
-  revisionNote?: string;
-};
+import type { ContentItem, ReviewDecision } from "../../../../lib/models";
 
 export default function ContentDetail({ params }: { params: Promise<{ id: string }> }) {
   const [id, setId] = useState("");
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<ContentItem | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
 
-  function reviewOrder(status: "approved" | "revision") {
+  function reviewOrder(status: ReviewDecision) {
     if (!order || order.status !== "review") return;
     if (status === "revision" && !revisionNote.trim()) {
       alert("Please enter a revision note.");
@@ -27,10 +23,10 @@ export default function ContentDetail({ params }: { params: Promise<{ id: string
     const updated = { ...order, status, ...(status === "revision" ? { revisionNote: revisionNote.trim() } : {}) };
     try {
       const rawMemory = localStorage.getItem("bidrano_content_memory");
-      let memory: Order[] = [];
+      let memory: ContentItem[] = [];
       try {
         const parsed = JSON.parse(rawMemory || "[]");
-        if (Array.isArray(parsed)) memory = parsed.filter((item): item is Order => Boolean(item?.id));
+        if (Array.isArray(parsed)) memory = parsed.filter((item): item is ContentItem => Boolean(item?.id));
       } catch {}
       if (status === "approved") {
         localStorage.setItem("bidrano_content_memory", JSON.stringify([...memory.filter((item) => item.id !== updated.id), updated]));
@@ -53,7 +49,7 @@ export default function ContentDetail({ params }: { params: Promise<{ id: string
       const raw = localStorage.getItem("bidrano_order_" + id);
       if (raw) {
         try {
-          const parsed = JSON.parse(raw) as Order;
+          const parsed = JSON.parse(raw) as ContentItem;
           if (parsed.id === id) setOrder(parsed);
         } catch {}
       }

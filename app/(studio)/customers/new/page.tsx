@@ -4,17 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
-type CustomerForm = {
-  name: string;
-  field: string;
-  audience: string;
-  tone: string;
-  phone: string;
-  address: string;
-  website: string;
-  instagram: string;
-  rules: string;
-};
+import type { Customer, CustomerForm } from "../../../../lib/models";
 
 export default function NewCustomer() {
   const [form, setForm] = useState<CustomerForm>({
@@ -42,7 +32,7 @@ export default function NewCustomer() {
       return;
     }
 
-    const customer = {
+    const customer: Customer = {
       ...form,
       id: "customer-" + Date.now(),
       status: "Active",

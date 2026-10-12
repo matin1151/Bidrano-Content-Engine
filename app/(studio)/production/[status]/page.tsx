@@ -11,22 +11,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-type Order = {
-  id: string;
-  customerId?: string;
-  customerName?: string;
-  customerField?: string;
-  contentType?: string;
-  topic?: string;
-  instructions?: string;
-  source?: string;
-  status?: string;
-  createdAt?: string;
-  pipeline?: string[];
-  currentStep?: number;
-};
+import type { Order, OrderStatus } from "../../../../lib/models";
 
-function readOrder(status: string, orderId?: string): Order | null {
+function readOrder(status: OrderStatus, orderId?: string): Order | null {
   if (typeof window === "undefined") return null;
 
   try {
@@ -85,8 +72,8 @@ export default function ProductionStatus({
 
         const query = new URLSearchParams(window.location.search);
         const orderId = query.get("order") || undefined;
-        const existing = ROUTE_STATUS[resolved.status]
-          ? readOrder(ROUTE_STATUS[resolved.status], orderId) : null;
+        const orderStatus = ROUTE_STATUS[resolved.status];
+        const existing = orderStatus ? readOrder(orderStatus, orderId) : null;
 
         setOrder(existing);
 
@@ -136,7 +123,7 @@ export default function ProductionStatus({
     return () => window.clearTimeout(timer);
   }, [order]);
 
-  const pageTitle = STATUS_LABELS[ROUTE_STATUS[status]] || STATUS_LABELS["in-progress"];
+  const pageTitle = STATUS_LABELS[ROUTE_STATUS[status] || "in-progress"] || STATUS_LABELS["in-progress"];
 
   if (!loaded) {
     return (

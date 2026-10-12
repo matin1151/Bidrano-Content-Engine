@@ -6,12 +6,12 @@ import { notFound } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 
-type Customer = {name:string;field:string;audience:string;tone:string;initials:string;location:string};
+import type { CustomerProfile as CustomerProfileData } from "../../../../lib/models";
 export default function CustomerProfile({id}:{id:string}){
- const [c, setCustomer] = useState<Customer | null>(CUSTOMERS.find((customer) => customer.id === id) || null);
+ const [c, setCustomer] = useState<CustomerProfileData | null>(CUSTOMERS.find((customer) => customer.id === id) || null);
  const [loaded, setLoaded] = useState(false);
  useEffect(() => {
-   let customer: Customer | null = CUSTOMERS.find((customer) => customer.id === id) || null;
+   let customer: CustomerProfileData | null = CUSTOMERS.find((customer) => customer.id === id) || null;
    try {
      const saved: unknown = JSON.parse(localStorage.getItem("bidrano_customers") || "[]");
      if (!customer && Array.isArray(saved)) {

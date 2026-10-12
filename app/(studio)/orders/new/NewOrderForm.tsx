@@ -1,18 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { CUSTOMERS as DEFAULT_CUSTOMERS, CONTENT_TYPES, PIPELINE, SUGGESTIONS, normalizeCustomerId, type Suggestion } from "../../../../lib/mock-data";
+import { CUSTOMERS as DEFAULT_CUSTOMERS, CONTENT_TYPES, PIPELINE, SUGGESTIONS, normalizeCustomerId } from "../../../../lib/mock-data";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 
-type Customer = {
-  id: string;
-  name: string;
-  field: string;
-};
+import { isContentType } from "../../../../lib/models";
+import type { ContentType, CustomerSummary, Order, OrderMode, Suggestion } from "../../../../lib/models";
 
-function loadCustomers(): Customer[] {
+function loadCustomers(): CustomerSummary[] {
   if (typeof window === "undefined") return DEFAULT_CUSTOMERS;
 
   try {
@@ -22,7 +19,7 @@ function loadCustomers(): Customer[] {
 
     const custom = saved
       .filter(
-        (item): item is Customer =>
+        (item): item is CustomerSummary =>
           Boolean(item?.id && item?.name && item?.field)
       )
       .map((item) => ({
@@ -38,7 +35,7 @@ function loadCustomers(): Customer[] {
   }
 }
 
-export default function NewOrderForm({ mode: routeMode }: { mode?: "manual" | "suggestion" | "topic" }) {
+export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) {
   const searchParams = useSearchParams();
 
   const requestedCustomer = normalizeCustomerId(searchParams.get("customer") || "");
@@ -46,13 +43,13 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: "manual" | "s
   const requestedType = searchParams.get("type") || "";
   const mode = routeMode || searchParams.get("mode") || "manual";
 
-  const [customers, setCustomers] = useState<Customer[]>(DEFAULT_CUSTOMERS);
+  const [customers, setCustomers] = useState<CustomerSummary[]>(DEFAULT_CUSTOMERS);
 
   const initialCustomer =
     customers.find((customer) => customer.id === requestedCustomer) || customers[0];
 
   const [customerId, setCustomerId] = useState(initialCustomer?.id || "");
-  const [contentType, setContentType] = useState(requestedType || CONTENT_TYPES[0]);
+  const [contentType, setContentType] = useState<ContentType>(isContentType(requestedType) ? requestedType : CONTENT_TYPES[0]);
   const [topic, setTopic] = useState(requestedTopic);
   const [instructions, setInstructions] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState("");
@@ -89,7 +86,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: "manual" | "s
 
     setSaving(true);
 
-    const order = {
+    const order: Order = {
       id: "ORD-" + Date.now(),
       customerId: customer.id,
       customerName: customer.name,
@@ -160,7 +157,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: "manual" | "s
                 <span>Content Type</span>
                 <select
                   value={contentType}
-                  onChange={(event) => setContentType(event.target.value)}
+                  onChange={(event) => { if (isContentType(event.target.value)) setContentType(event.target.value); }}
                 >
                   {CONTENT_TYPES.map((type) => (
                     <option key={type} value={type}>

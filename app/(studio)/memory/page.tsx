@@ -6,7 +6,7 @@ import { MEMORY_ITEMS as items, STATUS_LABELS } from "../../../lib/mock-data";
 import { Search, ChevronLeft } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-type MemoryItem = { id: string; title: string; customer: string };
+import type { MemoryItem } from "../../../lib/models";
 
 export default function Memory() {
   const [query, setQuery] = useState("");
