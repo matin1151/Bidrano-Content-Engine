@@ -1,0 +1,5 @@
+import Link from "next/link";
+import { CONTENT_ITEMS } from "../../../../../lib/mock-data";
+import { notFound } from "next/navigation";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+export default async function CalendarDay({params}:{params:Promise<{day:string}>}){const {day}=await params;if (!/^\d+$/.test(day) || Number(day) < 1 || Number(day) > 30) notFound();return <><section className="page-main"><div className="page-header"><div><Link href="/calendar" className="back-link"><ChevronRight size={15}/> Content Calendar</Link><span className="eyebrow">JALALI DAY</span><h1>روز {day} مهر ۱۴۰۵</h1><p>All planned content for this day.</p></div></div><div className="status-detail-list">{CONTENT_ITEMS.filter((item) => item.day === Number(day)).map((item) => <Link key={item.id} href={"/content/" + item.id} className="status-detail-row"><span>{item.id}</span><div><strong>{item.topic}</strong><small>{item.contentType} • {item.customerName} • Planned</small></div><ChevronLeft size={17}/></Link>)}</div></section></>}
