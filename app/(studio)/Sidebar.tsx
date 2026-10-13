@@ -23,13 +23,14 @@ export default function Sidebar() {
               pathname === href || pathname.startsWith(href + "/") ||
               (href === "/production" && pathname.startsWith("/orders/")) ||
               (href === "/memory" && pathname.startsWith("/content/"));
-            return <Link key={label} href={href} className={`nav-item ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}><Icon size={18}/><span>{label}</span></Link>;
+            return <Link key={label} href={href} aria-label={label} title={label} className={`nav-item ${active ? "active" : ""}`} aria-current={active ? "page" : undefined}><Icon size={18}/><span>{label}</span></Link>;
           })}
         </nav>
         <div className="sidebar-bottom">
-          <div className="smart-tip"><Sparkles size={17}/><div><strong>Smart Suggestion</strong><small>3 ideas for today</small></div></div>
+          <div className="smart-tip"><Sparkles size={17}/><div><strong>Smart Suggestion</strong><small dir="ltr">3 ideas for today</small></div></div>
           <div className="user-card"><div className="avatar">M</div><div><strong>Matin</strong><small>Studio Manager</small></div></div>
         </div>
       </aside>
   );
 }
+

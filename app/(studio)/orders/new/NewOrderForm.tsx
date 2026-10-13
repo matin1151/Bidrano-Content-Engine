@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { CONTENT_TYPES, PIPELINE, SUGGESTIONS, normalizeCustomerId } from "../../../../lib/mock-data";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, CheckCircle2, ChevronRight } from "lucide-react";
 
 import { isContentType } from "../../../../lib/models";
@@ -30,6 +30,8 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
   const [instructions, setInstructions] = useState("");
   const [selectedSuggestion, setSelectedSuggestion] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const submitting = useRef(false);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [customerError, setCustomerError] = useState("");
 
@@ -37,6 +39,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
     const controller = new AbortController();
     setLoadingCustomers(true); setCustomerError("");
     customerData.summaries(controller.signal).then((loadedCustomers) => {
+      if (controller.signal.aborted) return;
       setCustomers(loadedCustomers);
       setCustomerId(loadedCustomers.some((customer) => customer.id === requestedCustomer) ?
         requestedCustomer : loadedCustomers[0]?.id || "");
@@ -55,6 +58,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
   }
 
   function startProduction() {
+    if (submitting.current || loadingCustomers || customerError) return;
     const cleanTopic = topic.trim();
 
     if (!customer) {
@@ -67,10 +71,11 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
       return;
     }
 
-    setSaving(true);
+    submitting.current = true;
+    setSaving(true); setSaveError("");
 
     const order: Order = {
-      id: "ORD-" + Date.now(),
+      id: "ORD-" + crypto.randomUUID(),
       customerId: customer.id,
       customerName: customer.name,
       customerField: customer.field,
@@ -84,9 +89,13 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
       currentStep: 0,
     };
 
-    orderData.save(order);
-
-    window.location.href = `/production/in-progress?order=${encodeURIComponent(order.id)}`;
+    try {
+      orderData.save(order);
+      window.location.href = `/production/in-progress?order=${encodeURIComponent(order.id)}`;
+    } catch {
+      setSaveError("Could not save the order. Please try again.");
+      setSaving(false);
+    } finally { submitting.current = false; }
   }
 
   return (
@@ -125,6 +134,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
                 <select
                   value={customerId}
                   onChange={(event) => {
+                    if (selectedSuggestion) setTopic("");
                     setCustomerId(event.target.value);
                     setSelectedSuggestion("");
                   }}
@@ -218,6 +228,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
           </aside>
         </div>
 
+        {saveError && <p role="alert">{saveError}</p>}
         <div className="form-actions">
           <Link href="/" className="button secondary">
             Cancel
@@ -227,7 +238,7 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
             type="button"
             className="button primary"
             onClick={startProduction}
-            disabled={saving || loadingCustomers || Boolean(customerError)}
+            disabled={saving || loadingCustomers || Boolean(customerError) || !customer}
           >
             {saving ? "Starting..." : "Start Production"}
             <ArrowLeft size={16} />

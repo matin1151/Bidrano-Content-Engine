@@ -7,8 +7,8 @@ AI-native content production studio, not a chatbot.
 Modern operational SaaS: deep navy structure, crisp blue primary actions, violet accent moments, cool neutral surfaces, clear cards, readable dashboards, and strong workflow hierarchy.
 
 ## Palette
-- Navy / Slate for shell, sidebar, typography, and structure.
-- Blue for primary actions, active states, and progress.
+- Navy / Slate for typography and structure.
+- Blue for the sidebar, primary actions, active states, and progress.
 - Violet for intelligent assistant, suggestions, and accent states.
 - Emerald for success and approved states.
 - Amber for warning and review states.

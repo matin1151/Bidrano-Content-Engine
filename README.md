@@ -11,8 +11,11 @@ This storage supports one local server process, not serverless or multi-instance
 deployment. Authentication and a production database are still pending.
 Existing browser customers are imported with their original IDs; existing server
 records take precedence. The original browser data is retained.
+Automatic browser-data import requires the same browser origin (hostname and
+port) as the previous version. Changing ports creates a separate browser store.
 
 The API contract is in [docs/api-contract.md](docs/api-contract.md).
+The source review and confirmed fixes are in [docs/code-review.md](docs/code-review.md).
 
 ## Run locally
 
@@ -22,6 +25,19 @@ npm run dev
 ```
 
 Then open `http://localhost:3000`.
+
+Run commands from the directory containing `package.json`. In Windows PowerShell,
+use `npm.cmd` instead of `npm` if script execution is disabled.
+
+## Checks
+
+```bash
+npm run typecheck
+npm test
+```
+
+Regression checks use an isolated temporary directory and do not modify the
+application's customer database.
 
 ## Architecture
 

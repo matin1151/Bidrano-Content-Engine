@@ -10,13 +10,21 @@ async function requestOnce<T>(url: string, options: RequestInit): Promise<Envelo
   if (options.signal?.aborted) controller.abort();
   const timeout = setTimeout(cancel, 15000);
   try {
+    const headers = new Headers(options.headers);
+    if (options.body !== undefined && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
     const response = await fetch(url, {
       ...options, signal: controller.signal, cache: "no-store",
-      headers: { "Content-Type": "application/json", ...options.headers },
+      headers,
     });
-    const payload = await response.json();
+    let payload: unknown;
+    try { payload = await response.json(); }
+    catch { throw new ApiError("Invalid server response", response.status >= 400 ? response.status : 502); }
+    const record = payload && typeof payload === "object" ? payload as Record<string, unknown> : null;
+    const error = record?.error && typeof record.error === "object" ? record.error as Record<string, unknown> : null;
+    const fields = error?.fields && typeof error.fields === "object" && !Array.isArray(error.fields) ?
+      Object.fromEntries(Object.entries(error.fields).filter(([, value]) => typeof value === "string")) as Record<string, string> : undefined;
     controller.signal.throwIfAborted();
-    if (!response.ok) throw new ApiError(payload?.error?.message || "Request failed", response.status, payload?.error?.fields);
+    if (!response.ok) throw new ApiError(typeof error?.message === "string" ? error.message : "Request failed", response.status, fields);
     if (!payload || typeof payload !== "object" || !("data" in payload)) throw new ApiError("Invalid server response", 502);
     return payload as Envelope<T>;
   } finally {
@@ -26,7 +34,7 @@ async function requestOnce<T>(url: string, options: RequestInit): Promise<Envelo
 }
 
 export async function apiRequest<T>(url: string, options: RequestInit = {}): Promise<Envelope<T>> {
-  const attempts = !options.method || options.method === "GET" ? 3 : 1;
+  const attempts = (options.method || "GET").toUpperCase() === "GET" ? 3 : 1;
   for (let attempt = 0; ; attempt++) {
     try { return await requestOnce<T>(url, options); }
     catch (error) {

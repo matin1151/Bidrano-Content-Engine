@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { notFound, useSearchParams } from "next/navigation";
 import { PIPELINE, ROUTE_STATUS, STATUS_LABELS } from "../../../../lib/mock-data";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -14,7 +15,11 @@ import {
 import type { Order } from "../../../../lib/models";
 import { orderData } from "../../../../lib/data";
 
-export default function ProductionStatus({
+export default function ProductionStatus(props: { params: Promise<{ status: string }> }) {
+  return <Suspense fallback={<section className="page-main">Loading production...</section>}><StatusContent {...props} /></Suspense>;
+}
+
+function StatusContent({
   params,
 }: {
   params: Promise<{ status: string }>;
@@ -22,9 +27,13 @@ export default function ProductionStatus({
   const [status, setStatus] = useState("in-progress");
   const [order, setOrder] = useState<Order | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState("");
+  const [matches, setMatches] = useState<Order[]>([]);
+  const query = useSearchParams().toString();
 
   useEffect(() => {
     let active = true;
+    setLoaded(false); setOrder(null); setError(""); setMatches([]);
 
     params
       .then((resolved) => {
@@ -32,10 +41,11 @@ export default function ProductionStatus({
 
         setStatus(resolved.status);
 
-        const query = new URLSearchParams(window.location.search);
-        const orderId = query.get("order") || undefined;
+        const orderId = new URLSearchParams(query).get("order") || undefined;
         const orderStatus = ROUTE_STATUS[resolved.status];
-        const existing = orderStatus ? orderData.findByStatus(orderStatus, orderId) : null;
+        const matching = orderStatus ? orderData.list().filter((item) => item.status === orderStatus) : [];
+        const existing = (orderId ? matching.find((item) => item.id === orderId) : matching[0]) || null;
+        setMatches(matching);
 
         setOrder(existing);
 
@@ -48,10 +58,11 @@ export default function ProductionStatus({
     return () => {
       active = false;
     };
-  }, [params]);
+  }, [params, query]);
 
   useEffect(() => {
-    if (!order || order.status === "review" || order.status === "approved") {
+    if (!loaded || error || !order || order.status !== ROUTE_STATUS[status]) return;
+    if (order.status === "review" || order.status === "approved") {
       return;
     }
 
@@ -60,8 +71,14 @@ export default function ProductionStatus({
     }
 
     const timer = window.setTimeout(() => {
+      const latest = orderData.get(order.id);
+      if (!latest) { setError("The order is no longer available."); return; }
+      if (latest.status !== "in-progress") {
+        window.location.href = `/production/${latest.status}?order=${encodeURIComponent(latest.id)}`;
+        return;
+      }
       const nextStep = Math.min(
-        (order.currentStep ?? 0) + 1,
+        latest.currentStep + 1,
         PIPELINE.length
       );
 
@@ -69,13 +86,14 @@ export default function ProductionStatus({
         nextStep >= PIPELINE.length ? "review" : "in-progress";
 
       const updated: Order = {
-        ...order,
+        ...latest,
         currentStep: nextStep,
         status: nextStatus,
         pipeline: PIPELINE,
       };
 
-      orderData.save(updated);
+      try { orderData.update(updated); }
+      catch { setError("Could not save production progress. Please try again."); return; }
       setOrder(updated);
       if (nextStatus === "review") {
         window.location.href = `/production/review?order=${encodeURIComponent(updated.id)}`;
@@ -83,7 +101,7 @@ export default function ProductionStatus({
     }, 1400);
 
     return () => window.clearTimeout(timer);
-  }, [order]);
+  }, [order, loaded, error, status]);
 
   const pageTitle = STATUS_LABELS[ROUTE_STATUS[status] || "in-progress"] || STATUS_LABELS["in-progress"];
 
@@ -99,6 +117,9 @@ export default function ProductionStatus({
       </>
     );
   }
+
+  if (!ROUTE_STATUS[status]) notFound();
+  if (error) return <section className="page-main"><p role="alert">{error}</p></section>;
 
   if (!order) {
     return (
@@ -145,7 +166,7 @@ export default function ProductionStatus({
             <p>
               {isReview
                 ? "The production pipeline is complete and the order is ready for operator review."
-                : "Bidrano is moving this order through the production pipeline."}
+                : order.status === "approved" ? "This order has been approved." : order.status === "revision" ? "This order is waiting for revision." : "Bidrano is moving this order through the production pipeline."}
             </p>
           </div>
 
@@ -156,6 +177,7 @@ export default function ProductionStatus({
           </div>
         </div>
 
+        {matches.length > 1 && <div className="status-detail-list">{matches.map((item) => <Link key={item.id} href={`/production/${status}?order=${encodeURIComponent(item.id)}`} className="status-detail-row"><span>{item.id}</span><div><strong>{item.topic}</strong><small>{item.customerName}</small></div><ArrowLeft size={16} /></Link>)}</div>}
         <div className="production-layout">
           <section className="production-card">
             <div className="production-card-header">

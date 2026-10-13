@@ -25,6 +25,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const input = parseCustomerInput(await body(request));
-    return success(await createCustomer(input), 201);
+    return success(await createCustomer(input, request.headers.get("Idempotency-Key") || undefined), 201);
   } catch (error) { return handleError(error); }
 }

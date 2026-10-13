@@ -25,6 +25,7 @@ export default function NewCustomer() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const submitting = useRef(false);
+  const creation = useRef<{ signature: string; key: string } | null>(null);
 
   const update = (key: keyof CustomerForm, value: string) => {
     setFieldErrors((current) => ({ ...current, [key]: "" }));
@@ -43,7 +44,9 @@ export default function NewCustomer() {
 
     submitting.current = true; setSaving(true); setError(""); setFieldErrors({});
     try {
-      await customerData.create(form);
+      const signature = JSON.stringify(form);
+      if (creation.current?.signature !== signature) creation.current = { signature, key: crypto.randomUUID() };
+      await customerData.create(form, creation.current.key);
       window.location.href = "/customers";
     } catch (error) {
       setError(requestMessage(error));

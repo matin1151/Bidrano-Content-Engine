@@ -32,11 +32,17 @@ export default function ContentDetail({ params }: { params: Promise<{ id: string
   }
 
   useEffect(() => {
+    let active = true;
+    setLoaded(false); setOrder(null); setRevisionNote("");
     params.then(({ id }) => {
+      if (!active) return;
       setId(id);
-      setOrder(contentData.get(id));
+      const item = contentData.get(id);
+      setOrder(item);
+      setRevisionNote(item?.revisionNote || "");
       setLoaded(true);
-    });
+    }).catch(() => { if (active) setLoaded(true); });
+    return () => { active = false; };
   }, [params]);
 
   const topic = order?.topic || "";

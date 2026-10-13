@@ -31,6 +31,7 @@ export const PRODUCTION_SUMMARY: { status: OrderStatus; count: string; text: str
   { status: "in-progress", count: "08", text: "Active production orders" },
   { status: "review", count: "05", text: "Waiting for human review" },
   { status: "approved", count: "21", text: "Ready or published" },
+  { status: "revision", count: "00", text: "Waiting for revision" },
 ];
 
 export const CONTENT_ITEMS: ContentItem[] = [

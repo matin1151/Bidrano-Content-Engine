@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit --incremental false",
+    "test": "node --test scripts/audit.test.cjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

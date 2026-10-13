@@ -1,10 +1,15 @@
+"use client";
+
+import { useOrders } from "../../../lib/use-orders";
 import Link from "next/link";
 import { CUSTOMERS, CONTENT_TYPES, PRODUCTION_SUMMARY, STATUS_LABELS } from "../../../lib/mock-data";
 import { ChevronLeft, CircleDot, LoaderCircle } from "lucide-react";
 
-const statuses = PRODUCTION_SUMMARY.map((item) => ({ ...item, href: "/production/" + item.status, title: STATUS_LABELS[item.status] }));
+
 
 export default function Production() {
+  const orders = useOrders();
+  const statuses = PRODUCTION_SUMMARY.map((item) => ({ ...item, count: String(orders.filter((order) => order.status === item.status).length).padStart(2, "0"), href: "/production/" + item.status, title: STATUS_LABELS[item.status] }));
   return <><section className="page-main">
     <div className="page-header"><div><span className="eyebrow">PRODUCTION</span><h1>Production</h1><p>Follow each order through Research, Strategy, Visual and QA.</p></div><Link href="/" className="back-link">Dashboard <ChevronLeft size={15}/></Link></div>
     <div className="status-grid">{statuses.map(s=><Link href={s.href} className="status-card" key={s.href}><span className="status-card-count">{s.count}</span><h3>{s.title}</h3><p>{s.text}</p><ChevronLeft size={17}/></Link>)}</div>
