@@ -91,7 +91,8 @@ export default function NewOrderForm({ mode: routeMode }: { mode?: OrderMode }) 
 
     try {
       orderData.save(order);
-      window.location.href = `/production/in-progress?order=${encodeURIComponent(order.id)}`;
+      window.location.href = contentType === "Reel" ? `/reels?order=${encodeURIComponent(order.id)}` :
+        `/production/in-progress?order=${encodeURIComponent(order.id)}`;
     } catch {
       setSaveError("Could not save the order. Please try again.");
       setSaving(false);

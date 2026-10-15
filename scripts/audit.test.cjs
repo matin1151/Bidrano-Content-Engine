@@ -154,6 +154,134 @@ test("legacy migration skips malformed records, batches large imports, and retai
     assert.equal(localStorage.getItem("bidrano_customers"), raw);
   } finally { global.fetch = previous; }
 });
+const reels = require(path.join(project, "lib/reels.ts"));
+const reelProviders = require(path.join(project, "lib/server/reel-providers.ts"));
+const reelMedia = require(path.join(project, "lib/server/reel-media.ts"));
+const reelJobs = require(path.join(project, "lib/server/reel-jobs.ts"));
+const reelRoute = require(path.join(project, "app/api/v1/reels/route.ts"));
+const reelAssets = require(path.join(project, "app/api/v1/reels/assets/route.ts"));
+const reelFiles = require(path.join(project, "app/api/v1/reels/media/[id]/route.ts"));
+const { randomUUID } = require("node:crypto");
+const testProviders = [
+  { id: "video-a", label: "Video A", adapter: "openai-video", capability: "video", model: "sora-2", tokenEnv: "BIDRANO_TEST_KEY", seconds: [4, 8, 12] },
+  { id: "image-a", label: "Image A", adapter: "openai-image", capability: "image", model: "gpt-image-1", tokenEnv: "BIDRANO_TEST_KEY", seconds: [4] },
+  { id: "video-b", label: "Video B", adapter: "replicate", capability: "video", model: "pinned-version", tokenEnv: "BIDRANO_TEST_KEY", seconds: [8], secondsField: "duration", input: { aspect_ratio: "9:16" } },
+];
+async function withReels(action) {
+  const names = ["BIDRANO_AI_PROVIDERS", "BIDRANO_TEST_KEY", "BIDRANO_REELS_ENABLED"];
+  const previous = names.map((name) => process.env[name]);
+  const fetch = global.fetch;
+  process.env.BIDRANO_AI_PROVIDERS = JSON.stringify(testProviders);
+  process.env.BIDRANO_TEST_KEY = "test-secret-not-for-client";
+  process.env.BIDRANO_REELS_ENABLED = "true";
+  try { return await action(); }
+  finally { global.fetch = fetch; names.forEach((name, i) => { if (previous[i] === undefined) delete process.env[name]; else process.env[name] = previous[i]; }); }
+}
+test("reel timeline accounts for transition overlap and protects path IDs", () => {
+  assert.equal(reels.reelDuration([{ seconds: 8 }, { seconds: 8 }, { seconds: 8 }]), 23.2);
+  const graph = reelMedia.transitionGraph([8, 8, 8], ["fade", "smoothleft"]);
+  assert.match(graph, /offset=7.600/);
+  assert.match(graph, /offset=15.200/);
+  assert.match(graph, /scale=1080:1920/);
+  assert.match(graph, /boxblur/);
+  assert.throws(() => reelMedia.mediaPath("../../secret"));
+  assert.throws(() => reelMedia.transitionGraph([8, 8], ["arbitrary-filter"]));
+});
+test("multiple AI profiles expose capabilities but never tokens or configuration input", async () => withReels(async () => {
+  const profiles = reelProviders.publicProviders();
+  assert.equal(profiles.length, 3);
+  assert.equal(profiles[2].supportsReference, false);
+  assert.equal(profiles[0].ready, true);
+  assert.ok(!JSON.stringify(profiles).includes("test-secret"));
+  assert.ok(!JSON.stringify(profiles).includes("tokenEnv"));
+  process.env.BIDRANO_AI_PROVIDERS = JSON.stringify([...testProviders, testProviders[0]]);
+  assert.throws(() => reelProviders.publicProviders());
+}));
+test("reel endpoints reject public origins and disabled paid generation", async () => withReels(async () => {
+  assert.throws(() => reelJobs.localReelAccess(new Request("https://public.example/api/v1/reels")));
+  assert.throws(() => reelJobs.localReelAccess(new Request("http://localhost/api/v1/reels", { headers: { Origin: "https://other.example" } })));
+  assert.throws(() => reelJobs.localReelAccess(new Request("http://localhost/api/v1/reels", { headers: { "Sec-Fetch-Site": "cross-site" } })));
+  process.env.BIDRANO_REELS_ENABLED = "false";
+  const response = await reelRoute.POST(new Request("http://localhost/api/v1/reels", { method: "POST" }));
+  assert.equal(response.status, 503);
+}));
+test("paid scene submission is idempotent, does not switch providers and stores downloaded MP4", async () => withReels(async () => {
+  let submissions = 0;
+  const id = randomUUID();
+  global.fetch = async (url, options) => {
+    if (url.endsWith("/videos")) {
+      submissions++;
+      assert.equal(options.body.get("seconds"), "8");
+      assert.equal(options.body.get("size"), "720x1280");
+      return Response.json({ id: "video_test", status: "queued" });
+    }
+    if (url.endsWith("/content")) return new Response(Buffer.from("0000ftyp-test-mp4"));
+    return Response.json({ id: "video_test", status: "completed" });
+  };
+  const input = { id, providerId: "video-a", prompt: "A product", seconds: 8 };
+  const jobs = await Promise.all([reelJobs.createReelJob(input), reelJobs.createReelJob(input)]);
+  assert.equal(submissions, 1);
+  assert.equal(jobs[0].status, "queued");
+  await assert.rejects(reelJobs.createReelJob({ ...input, prompt: "Changed" }), /different generation/);
+  const stored = await reelMedia.readRecord(id);
+  await reelMedia.atomicJson(id, { ...stored, checkedAt: 0 });
+  const complete = await reelJobs.pollReelJob(id);
+  assert.equal(complete.status, "ready");
+  assert.equal(complete.mediaUrl, "/api/v1/reels/media/" + id);
+  const media = await reelFiles.GET(new Request("http://localhost/api/v1/reels/media/" + id, { headers: { Range: "bytes=4-7" } }), { params: Promise.resolve({ id }) });
+  assert.equal(media.status, 206);
+  assert.equal(await media.text(), "ftyp");
+  assert.equal(submissions, 1);
+}));
+test("ambiguous upstream failure never causes automatic duplicate billing", async () => withReels(async () => {
+  let calls = 0;
+  global.fetch = async () => { calls++; throw new Error("Timeout"); };
+  const input = { id: randomUUID(), providerId: "video-a", prompt: "Scene", seconds: 4 };
+  const job = await reelJobs.createReelJob(input);
+  assert.equal(job.status, "uncertain");
+  assert.equal((await reelJobs.createReelJob(input)).status, "uncertain");
+  assert.equal((await reelJobs.pollReelJob(input.id)).status, "uncertain");
+  assert.equal(calls, 1);
+}));
+test("Replicate mapping is explicit and output download never forwards API credentials", async () => withReels(async () => {
+  const calls = [];
+  global.fetch = async (url, options) => {
+    calls.push(String(url));
+    if (String(url).includes("replicate.delivery")) {
+      assert.equal(options.headers, undefined);
+      assert.equal(options.redirect, "error");
+      return new Response(Buffer.from("0000ftyp-test"));
+    }
+    const payload = JSON.parse(options.body);
+    assert.equal(payload.version, "pinned-version");
+    assert.equal(payload.input.duration, 8);
+    assert.equal(payload.input.aspect_ratio, "9:16");
+    return Response.json({ id: "replicate_test", status: "succeeded", output: "https://replicate.delivery/test.mp4" });
+  };
+  const job = await reelJobs.createReelJob({ id: randomUUID(), providerId: "video-b", prompt: "Scene", seconds: 8 });
+  assert.equal(job.status, "ready");
+  assert.equal(calls.length, 2);
+  await assert.rejects(reelProviders.downloadOutput("https://127.0.0.1/private"));
+  await assert.rejects(reelProviders.downloadOutput("https://replicate.delivery.evil.example/x"));
+}));
+test("reference upload checks image bytes and optimized image becomes usable media", async () => withReels(async () => {
+  const bad = await reelAssets.POST(new Request("http://localhost/api/v1/reels/assets", { method: "POST", body: "not-an-image" }));
+  assert.equal(bad.status, 415);
+  const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0]);
+  const uploaded = await reelAssets.POST(new Request("http://localhost/api/v1/reels/assets", { method: "POST", body: png }));
+  const { data: asset } = await uploaded.json();
+  assert.ok(reels.isUuid(asset.id));
+  global.fetch = async (url, options) => {
+    assert.ok(url.endsWith("/images/edits"));
+    assert.match(options.body.get("prompt"), /Preserve product geometry/);
+    assert.ok(options.body.get("image") instanceof Blob);
+    return Response.json({ data: [{ b64_json: png.toString("base64") }] });
+  };
+  const job = await reelJobs.createReelJob({ id: randomUUID(), providerId: "image-a", prompt: "Optimize", seconds: 4, referenceId: asset.id });
+  assert.equal(job.status, "ready");
+  await assert.rejects(reelJobs.renderReel({ id: randomUUID(), scenes: [{ jobId: job.id, seconds: 8, transition: "fade" }, { jobId: job.id, seconds: 8, transition: "fade" }] }), /completed video/);
+}));
+
 test.after(() => {
   process.chdir(originalCwd);
   const resolved = fs.realpathSync(temporary);

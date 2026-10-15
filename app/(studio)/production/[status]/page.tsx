@@ -61,7 +61,7 @@ function StatusContent({
   }, [params, query]);
 
   useEffect(() => {
-    if (!loaded || error || !order || order.status !== ROUTE_STATUS[status]) return;
+    if (!loaded || error || !order || order.contentType === "Reel" || order.status !== ROUTE_STATUS[status]) return;
     if (order.status === "review" || order.status === "approved") {
       return;
     }
@@ -148,6 +148,14 @@ function StatusContent({
       </>
     );
   }
+
+  if (order.contentType === "Reel" && order.status === "in-progress") return <section className="page-main">
+    <div className="page-header"><div><span className="eyebrow">PRODUCTION</span><h1>{pageTitle}</h1></div></div>
+    <div className="empty-state"><h2>{order.topic}</h2><p>Video generation and export are managed in Reel Studio.</p>
+      <Link className="button primary" href={`/reels?order=${encodeURIComponent(order.id)}`}>Reel Studio <ArrowLeft size={16} /></Link>
+    </div>
+    <div className="status-detail-list section">{matches.filter((item) => item.id !== order.id).map((item) => <Link key={item.id} className="status-detail-row" href={item.contentType === "Reel" ? `/reels?order=${encodeURIComponent(item.id)}` : `/production/${status}?order=${encodeURIComponent(item.id)}`}><span>{item.contentType}</span><strong>{item.topic}</strong><ArrowLeft size={16} /></Link>)}</div>
+  </section>;
 
   const currentStep = Math.min(order.currentStep ?? 0, PIPELINE.length);
   const isReview = order.status === "review";

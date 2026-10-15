@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, FolderKanban, LayoutDashboard, Sparkles, Users, WandSparkles } from "lucide-react";
+import { CalendarDays, Clapperboard, FolderKanban, LayoutDashboard, Sparkles, Users, WandSparkles } from "lucide-react";
 
 const nav = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Customers", href: "/customers", icon: Users },
   { label: "Production", href: "/production", icon: WandSparkles },
+  { label: "Reel Studio", href: "/reels", icon: Clapperboard },
   { label: "Content Calendar", href: "/calendar", icon: CalendarDays },
   { label: "Content Memory", href: "/memory", icon: FolderKanban },
 ];
@@ -33,4 +34,3 @@ export default function Sidebar() {
       </aside>
   );
 }
-

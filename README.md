@@ -53,7 +53,15 @@ application's customer database.
 
 Calendar planning never starts production automatically. An operator explicitly starts production after reviewing the order context.
 
-## Next implementation
+## Reel Studio (local integration preview)
+
+`/reels` adds independently selectable image/video AI providers, reference-image
+optimization, scene generation and optional FFmpeg vertical MP4 composition.
+Disabled by default; real keys, provider billing limits and an installed FFmpeg
+are required. The first export is silent; narration/captions and automatic
+storyboarding are not implemented. See [setup and limitations](docs/reel-studio.md).
+
+## Remaining implementation
 
 1. Real database + Customer Profile persistence
 2. Orchestrator and production engines
